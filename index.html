@@ -172,7 +172,9 @@
       display: grid;
       place-items: center;
       padding: 32px;
+      background: transparent;
     }
+    .canvas-wrap[hidden] { display: none; }
     #canvas {
       display: block;
       /* Width and height are set in JS to give a smooth 'contain → cover' transition
@@ -639,7 +641,7 @@
           </div>
         </div>
         <div class="chrome-progress" hidden>
-          <span class="progress-label mono">Recording…</span>
+          <span class="progress-label mono">Downloading…</span>
           <div class="progress-bar"><div class="progress-bar-fill"></div></div>
           <span class="progress-pct mono">0%</span>
           <button id="cancel-rec" class="chrome-btn icon" type="button" aria-label="Cancel">×</button>
@@ -1124,7 +1126,7 @@
         console.error('MediaRecorder error:', e.error || e);
       };
 
-      showProgress('Recording…');
+      showProgress('Downloading…');
       v.pause();
       if (v.currentTime !== 0) {
         v.currentTime = 0;
@@ -1212,7 +1214,7 @@
     async function exportGif() {
       await loadGifJs();
       const v = state.source.el;
-      showProgress('Capturing frames…');
+      showProgress('Downloading…');
       setProgress(0);
 
       const useThreshold = state.dotTransparent || state.bgTransparent;
@@ -1252,7 +1254,7 @@
           // Capture phase — frames at 0..50% of bar
           if (v.duration > 0) setProgress((v.currentTime / v.duration) * 0.5);
           if (v.currentTime + frameDelay / 1000 >= v.duration) {
-            chromeProgressLabel.textContent = 'Encoding GIF…';
+            chromeProgressLabel.textContent = 'Encoding…';
             gif.on('progress', p => setProgress(0.5 + p * 0.5));
             gif.on('finished', blob => {
               if (!cancelled) {
