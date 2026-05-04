@@ -66,7 +66,8 @@
     .section:nth-of-type(3) { animation-delay: 180ms; }
     .section:nth-of-type(4) { animation-delay: 220ms; }
     .section:nth-of-type(5) { animation-delay: 260ms; }
-    .section.actions { animation-delay: 300ms; }
+    .section:nth-of-type(6) { animation-delay: 300ms; }
+    .section.actions { animation-delay: 340ms; }
     #stage { animation-delay: 80ms; animation-duration: 480ms; }
 
     #rail {
@@ -147,13 +148,16 @@
 
     .mono { font-family: 'Geist Mono', ui-monospace, monospace; }
 
-    #rail-head { margin-bottom: 28px; }
-    .title { font-size: 14px; font-weight: 600; letter-spacing: 0.02em; margin: 0; text-wrap: balance; }
-    .subtitle { font-size: 11px; color: var(--muted); margin: 4px 0 0; }
+    /* Robust empty-state hiding — beats #empty's display:flex */
+    #empty[hidden] { display: none !important; }
 
-    .section { padding: 16px 0; box-shadow: inset 0 1px 0 var(--hairline); }
+    #rail-head { margin-bottom: 20px; display: flex; flex-direction: column; gap: 8px; }
+    .logo { display: block; width: 100%; max-width: 220px; height: auto; color: var(--gaffer); }
+    .subtitle { font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); margin: 0; }
+
+    .section { padding: 12px 0; box-shadow: inset 0 1px 0 var(--hairline); }
     .section:first-of-type { box-shadow: none; padding-top: 0; }
-    .section-label { font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin: 0 0 12px; }
+    .section-label { font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin: 0 0 10px; }
 
     /* Buttons — universal scale-on-press, never below 0.95 */
     .text-btn,
@@ -172,7 +176,7 @@
     .text-btn:hover { color: var(--fg); }
     .text-btn:focus-visible { outline: 2px solid var(--gaffer); outline-offset: 4px; border-radius: 2px; }
 
-    .row { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 4px 8px; margin-bottom: 14px; }
+    .row { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 4px 8px; margin-bottom: 10px; }
     .row label { font-size: 11px; color: var(--fg); }
     .row .val { font-size: 11px; color: var(--muted); min-width: 56px; text-align: right; font-variant-numeric: tabular-nums; letter-spacing: 0.01em; }
 
@@ -283,6 +287,22 @@
 
     .hint { font-size: 10px; color: var(--muted-soft); margin: 0; font-family: 'Geist Mono', ui-monospace, monospace; }
 
+    /* Advanced section disclosure */
+    .advanced-section { padding-top: 10px; padding-bottom: 4px; }
+    .adv-toggle { margin-bottom: 0; padding: 4px 0; display: inline-flex; align-items: center; gap: 6px; }
+    .adv-toggle .adv-chev { display: inline-block; width: 10px; text-align: center; transition: transform 200ms var(--ease); }
+    .adv-toggle[aria-expanded="true"] .adv-chev { transform: rotate(45deg); }
+    .adv-body { margin-top: 12px; animation: advIn 220ms var(--ease); }
+    .adv-body[hidden] { display: none; }
+    @keyframes advIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+
+    /* Credit footer */
+    .credit { font-size: 10px; color: var(--muted-soft); margin: 10px 0 0; text-align: center; letter-spacing: 0.02em; }
+    .credit .heart { color: #E84142; font-style: normal; }
+    .credit a { color: var(--fg); text-decoration: none; border-bottom: 1px dotted rgba(28, 8, 2, 0.35); transition: color 160ms var(--ease), border-color 160ms var(--ease); }
+    .credit a:hover { color: var(--gaffer); border-bottom-color: var(--gaffer); }
+    .credit a:focus-visible { outline: 2px solid var(--gaffer); outline-offset: 3px; border-radius: 2px; }
+
     /* Action bar — sticky with a soft fade above instead of a hard divider */
     .section.actions {
       position: sticky;
@@ -391,8 +411,11 @@
   <main id="app">
     <aside id="rail">
       <header id="rail-head">
-        <h1 class="title">DOT MACHINE</h1>
-        <p class="subtitle mono">halftone tool</p>
+        <svg class="logo" viewBox="0 0 944 134" xmlns="http://www.w3.org/2000/svg" aria-label="LA BOULE">
+          <path d="M883.409 0.000976562C919.455 0.00130517 943.172 23.9997 943.172 71.3506V77.8428C943.172 80.4884 941.036 82.6351 938.381 82.6387C923.922 82.6558 881.095 82.7055 870.836 82.7139C869.682 82.7148 868.729 83.5358 868.717 84.6855C868.672 88.8774 870.285 98.2988 885.688 98.2988C893.432 98.2985 899.307 93.6759 903.61 88.167C905.25 86.0684 908.209 85.3659 910.465 86.7881L932.954 100.97C935.162 102.363 935.867 105.269 934.361 107.397C925.087 120.513 908.811 133.063 883.291 133.063C855.691 133.063 835.459 118.858 826.604 95.5283L820.445 124.674C820.445 127.322 818.291 129.469 815.633 129.469H756.676C754.018 129.469 751.863 127.322 751.863 124.674V8.39355C751.863 5.74546 754.018 3.59873 756.676 3.59863H793.975C796.632 3.59879 798.788 5.7455 798.788 8.39355V77.9229C798.788 80.183 798.788 81.3134 799.493 82.0156C800.198 82.7174 801.332 82.7178 803.601 82.7178H823.066C822.132 77.6199 821.649 72.2125 821.649 66.5322C821.649 26.6134 846.189 0.000976562 883.409 0.000976562ZM572.317 0C609.197 0 639.095 29.7871 639.096 66.5312C639.096 103.275 609.198 133.062 572.317 133.062C535.438 133.062 505.54 103.275 505.54 66.5312C505.54 29.7874 535.438 0.000367762 572.317 0ZM680.76 3.59668C685.297 3.59668 687.566 3.59661 688.976 5.00098C690.385 6.40545 690.385 8.66625 690.385 13.1865V81.5156C690.385 84.1635 692.54 86.3103 695.197 86.3105C697.855 86.3104 700.01 84.1636 700.01 81.5156V13.1865C700.01 8.66586 700.01 6.40543 701.42 5.00098C702.83 3.59654 705.098 3.59668 709.636 3.59668H737.22C741.796 3.59668 744.084 3.59644 745.496 5.0166C746.908 6.43679 746.887 8.71642 746.845 13.2754L746.199 82.7168C745.94 110.597 723.182 133.062 695.197 133.062C667.213 133.062 644.455 110.597 644.195 82.7168L643.55 13.2744C643.507 8.71613 643.487 6.43673 644.898 5.0166C646.311 3.59655 648.599 3.59668 653.175 3.59668H680.76ZM34.9805 30.5117C37.326 30.5118 39.2324 32.3849 39.2891 34.7168C39.3414 32.4033 41.2325 30.5439 43.5586 30.5439C45.9175 30.5441 47.8301 32.4565 47.8301 34.8154C47.83 36.6701 46.6471 38.2478 44.9951 38.8379C46.3471 39.2634 47.4389 40.2737 47.9756 41.5723C48.5717 40.2144 49.8127 39.2039 51.3115 38.9297C49.3917 38.5473 47.9443 36.8535 47.9443 34.8213C47.9446 32.5077 49.8202 30.6321 52.1338 30.6318C54.4475 30.6318 56.324 32.5076 56.3242 34.8213C56.3242 36.8539 54.8764 38.5487 52.9561 38.9307C54.6765 39.2455 56.0574 40.5293 56.5127 42.1963C57.035 40.3666 58.7185 39.0266 60.7158 39.0264C63.1303 39.0264 65.0878 40.9839 65.0879 43.3984C65.0879 45.2995 63.8742 46.9155 62.1797 47.5176C63.5584 47.9732 64.6536 49.0501 65.1348 50.417C65.7651 48.7309 67.3909 47.5303 69.2969 47.5303C71.6439 47.5304 73.564 49.3512 73.7256 51.6572C73.8891 49.5147 75.6788 47.8271 77.8633 47.8271C80.1554 47.8273 82.0137 49.6854 82.0137 51.9775C82.0136 54.0189 80.5393 55.7146 78.5977 56.0615C80.3718 56.3466 81.802 57.6567 82.2637 59.3652C82.7796 57.5376 84.4585 56.1974 86.4512 56.1973C88.8547 56.1973 90.8037 58.1463 90.8037 60.5498C90.8037 62.4469 89.5889 64.0586 87.8955 64.6543C89.2834 65.1025 90.3882 66.1787 90.877 67.5479C91.5143 65.877 93.1316 64.6895 95.0264 64.6895C97.3473 64.6896 99.2504 66.4713 99.4473 68.7412C99.644 66.6123 101.435 64.9453 103.615 64.9453C105.927 64.9453 107.801 66.82 107.801 69.1318C107.801 71.3134 106.132 73.1041 104.001 73.2988C106.258 73.5018 108.026 75.3975 108.026 77.707C108.026 79.632 106.797 81.2683 105.081 81.8779C106.667 82.4117 107.868 83.7777 108.168 85.457C108.549 83.5952 110.197 82.1943 112.172 82.1943C114.428 82.1944 116.258 84.0246 116.258 86.2812C116.258 88.5377 114.428 90.3671 112.172 90.3672C110.197 90.3672 108.548 88.9655 108.168 87.1025C107.881 88.7091 106.769 90.0278 105.284 90.6064C106.98 91.2756 108.181 92.9285 108.181 94.8623C108.181 96.9656 106.76 98.7352 104.827 99.2695C106.633 99.7948 107.952 101.461 107.952 103.436C107.952 105.832 106.01 107.775 103.613 107.775C101.83 107.775 100.299 106.7 99.6309 105.163C99.1712 106.392 98.2352 107.387 97.0469 107.925C98.5526 108.672 99.5878 110.225 99.5879 112.021C99.5879 114.545 97.5411 116.592 95.0166 116.592C93.2918 116.592 91.7909 115.636 91.0127 114.226C90.479 115.328 89.5592 116.209 88.4277 116.69C89.8539 117.413 90.832 118.892 90.832 120.601C90.832 123.021 88.8702 124.982 86.4502 124.982C84.6416 124.982 83.0892 123.887 82.4199 122.323C81.8221 123.898 80.4307 125.08 78.7334 125.384C80.4636 125.776 81.7558 127.323 81.7559 129.172C81.7559 131.318 80.0158 133.057 77.8701 133.057C75.7246 133.056 73.9854 131.317 73.9854 129.172C73.9854 127.323 75.2774 125.776 77.0078 125.384C75.6213 125.135 74.4388 124.301 73.7266 123.145C73.0597 124.303 71.9535 125.174 70.6348 125.532C72.1132 126.079 73.167 127.501 73.167 129.17C73.167 131.311 71.4312 133.047 69.29 133.047C67.1489 133.047 65.4131 131.311 65.4131 129.17C65.4131 127.502 66.4664 126.079 67.9443 125.532C66.7276 125.202 65.6915 124.435 65.0146 123.408C64.1976 124.654 62.8563 125.523 61.3027 125.7C62.9686 125.98 64.238 127.428 64.2383 129.174C64.2383 131.12 62.6608 132.698 60.7148 132.698C58.7688 132.698 57.1914 131.12 57.1914 129.174C57.1916 127.43 58.4588 125.982 60.123 125.7C58.4563 125.51 57.0328 124.524 56.2402 123.131C55.3901 124.5 53.874 125.413 52.1436 125.413C49.7699 125.413 47.7982 123.697 47.3984 121.438C47.0118 123.204 45.4407 124.525 43.5596 124.525C41.3885 124.525 39.6289 122.765 39.6289 120.594C39.6289 119.13 40.429 117.852 41.6162 117.176C40.4211 116.727 39.4245 115.875 38.79 114.785C37.9336 115.96 36.5482 116.724 34.9834 116.724C32.3822 116.724 30.2734 114.615 30.2734 112.014C30.2735 110.544 30.9463 109.232 32.001 108.368C31.2713 107.927 30.6479 107.329 30.1768 106.62C29.2706 107.695 27.9155 108.38 26.3994 108.38C23.6711 108.38 21.459 106.168 21.459 103.439C21.4591 101.891 22.1717 100.51 23.2861 99.6045C22.5532 99.1232 21.9388 98.4774 21.4951 97.7188C20.6439 98.8094 19.3179 99.5117 17.8271 99.5117C15.2586 99.5115 13.1768 97.429 13.1768 94.8604C13.1768 93.2197 14.0264 91.7781 15.3096 90.9502C13.9728 90.2287 12.9823 88.9499 12.6475 87.4248C12.1722 88.8508 10.8279 89.8798 9.24219 89.8799C7.25944 89.8799 5.65234 88.2718 5.65234 86.2891C5.65254 84.3065 7.25956 82.6992 9.24219 82.6992C10.8258 82.6993 12.1686 83.7253 12.6455 85.1484C12.913 83.9226 13.6043 82.8557 14.5586 82.1084C13.7838 81.5323 13.1659 80.7569 12.7822 79.8574C12.0561 81.0499 10.7443 81.8466 9.24609 81.8467C6.96092 81.8467 5.10862 79.9941 5.1084 77.709C5.1084 75.4237 6.96079 73.5703 9.24609 73.5703C10.744 73.5704 12.056 74.3666 12.7822 75.5586C13.1434 74.7129 13.7129 73.9777 14.4238 73.4141C13.7373 72.8687 13.1851 72.1625 12.8242 71.3516C12.0804 72.5463 10.7561 73.3428 9.24512 73.3428C6.91779 73.3426 5.03125 71.4553 5.03125 69.1279C5.03138 66.8007 6.91787 64.9143 9.24512 64.9141C10.757 64.9141 12.0825 65.7104 12.8262 66.9062C13.2257 66.0104 13.8579 65.2416 14.6475 64.6777C13.7747 64.0072 13.1213 63.0673 12.8105 61.9814C12.243 63.3946 10.8612 64.3926 9.24512 64.3926C7.1233 64.3925 5.40332 62.6726 5.40332 60.5508C5.40342 58.429 7.12336 56.7091 9.24512 56.709C10.8592 56.709 12.2398 57.7048 12.8086 59.1152C13.1928 57.768 14.1046 56.6431 15.3076 55.9805C13.9756 55.1437 13.0889 53.6628 13.0889 51.9736C13.0889 49.5482 14.9146 47.5492 17.2666 47.2754C15.3628 47.0074 13.8975 45.3733 13.8975 43.3955C13.8975 41.2308 15.6527 39.4758 17.8174 39.4756C19.6973 39.4756 21.2675 40.7994 21.6484 42.5654C21.9831 40.6404 23.4585 39.1068 25.3535 38.6885C23.6476 38.229 22.3917 36.6724 22.3916 34.8213C22.3916 32.6089 24.1851 30.8155 26.3975 30.8154C28.6099 30.8154 30.4033 32.6088 30.4033 34.8213C30.4032 36.6728 29.147 38.2295 27.4404 38.6885C28.8484 38.9989 30.0242 39.9252 30.6738 41.1699C31.2384 40.0813 32.204 39.2343 33.375 38.8242C31.7891 38.1873 30.6689 36.6369 30.6689 34.8232C30.669 32.4421 32.5993 30.5117 34.9805 30.5117ZM466.002 3.5957C485.893 3.5957 502.018 19.7214 502.019 39.6123C502.019 47.9736 499.168 55.6689 494.388 61.7812C493.449 62.9819 493.521 64.7134 494.561 65.8281C500.848 72.5698 504.695 81.617 504.695 91.5625C504.695 112.406 487.798 129.469 466.954 129.469H458.55L458.546 129.473H451.366L451.362 129.469H451.36L451.356 129.473H410.216C407.15 129.473 404.665 126.987 404.665 123.921V9.14648C404.665 6.08099 407.15 3.59583 410.216 3.5957H466.002ZM220.062 3.59668C222.72 3.59693 224.875 5.74366 224.875 8.3916V77.9199C224.875 80.1802 224.874 81.3115 225.579 82.0137C226.284 82.7158 227.419 82.7148 229.688 82.7148H246.051C248.709 82.7148 250.863 84.8618 250.863 87.5098V124.672C250.863 127.32 248.709 129.467 246.051 129.467H182.763C180.105 129.467 177.95 127.32 177.95 124.672V8.3916C177.95 5.74355 180.105 3.59675 182.763 3.59668H220.062ZM307.555 0C335.539 0.00021702 358.298 22.4664 358.557 50.3467L359.24 123.858C359.269 126.947 356.763 129.467 353.663 129.467H321.992C317.455 129.467 315.186 129.467 313.776 128.062C312.367 126.658 312.367 124.397 312.367 119.877V97.1797C312.367 95.6469 311.125 94.4094 309.592 94.4092H305.518C303.985 94.4092 302.741 95.6468 302.741 97.1797V119.877C302.741 124.397 302.742 126.658 301.332 128.062C299.922 129.467 297.653 129.467 293.116 129.467H261.445C258.345 129.467 255.839 126.947 255.868 123.858L256.552 50.3467C256.811 22.4663 279.57 2.97478e-05 307.555 0ZM572.318 46.751C561.354 46.7511 552.465 55.6065 552.465 66.5303C552.465 77.4541 561.354 86.3094 572.318 86.3096C583.283 86.3095 592.171 77.4541 592.171 66.5303C592.171 55.6064 583.283 46.751 572.318 46.751ZM452.241 81.8564C451.198 81.8567 450.352 82.7033 450.352 83.7471V94.3311C450.352 95.3747 451.198 96.2205 452.241 96.2207H455.14C459.106 96.2207 462.322 93.0056 462.322 89.0391C462.322 85.0724 459.106 81.8565 455.14 81.8564H452.241ZM882.41 32.3906C874.769 32.391 868.574 38.5633 868.574 46.1768V48.374C868.574 49.4773 869.472 50.3719 870.579 50.3721H894.242C895.349 50.3718 896.248 49.4772 896.248 48.374V46.1768C896.248 38.5632 890.052 32.3908 882.41 32.3906ZM452.241 27.5049C451.198 27.5051 450.352 28.3518 450.352 29.3955V39.9795C450.352 41.0232 451.198 41.8699 452.241 41.8701H455.14C459.106 41.8701 462.322 38.6542 462.322 34.6875C462.322 30.7209 459.106 27.5049 455.14 27.5049H452.241ZM307.555 44.3545C304.897 44.3545 302.741 46.5014 302.741 49.1494V66.542C302.741 67.8659 303.819 68.9402 305.147 68.9404H309.961C311.29 68.9402 312.367 67.866 312.367 66.542V49.1494C312.367 46.5015 310.212 44.3547 307.555 44.3545Z" fill="currentColor"/>
+          <g fill="currentColor"><circle cx="86.4414" cy="129.175" r="3.59"/><circle cx="52.126" cy="129.177" r="2.69"/><circle cx="95.0283" cy="120.6" r="3.846"/><circle cx="103.604" cy="120.6" r="3.446"/><circle cx="34.9785" cy="120.593" r="2.369"/><circle cx="103.604" cy="112.022" r="3.866"/><circle cx="112.175" cy="112.013" r="3.429"/><circle cx="26.3945" cy="112.015" r="3.071"/><circle cx="112.176" cy="103.446" r="3.655"/><circle cx="120.757" cy="103.442" r="3.3"/><circle cx="17.8193" cy="103.439" r="3.13"/><circle cx="112.177" cy="94.8604" r="3.912"/><circle cx="120.757" cy="94.8604" r="3.361"/><circle cx="9.24414" cy="94.8594" r="2.622"/><circle cx="120.759" cy="86.2812" r="3.432"/><circle cx="129.342" cy="86.2832" r="3.181"/><circle cx="572.318" cy="66.5303" r="19.853" fill="none"/><circle cx="112.185" cy="77.709" r="3.997"/><circle cx="120.755" cy="77.7061" r="3.469"/><circle cx="129.337" cy="77.7051" r="3.006"/><circle cx="0.670898" cy="69.1299" r="0.671"/><circle cx="112.182" cy="69.1348" r="3.823"/><circle cx="120.755" cy="69.1299" r="3.283"/><circle cx="129.333" cy="69.127" r="2.901"/><circle cx="0.664062" cy="60.5498" r="0.324"/><circle cx="95.0342" cy="60.5518" r="4.061"/><circle cx="103.604" cy="60.5508" r="3.741"/><circle cx="112.172" cy="60.5547" r="3.341"/><circle cx="120.751" cy="60.5537" r="2.921"/><circle cx="129.328" cy="60.5498" r="2.662"/><circle cx="86.4375" cy="51.9707" r="3.686"/><circle cx="95.0186" cy="51.9756" r="3.222"/><circle cx="9.24414" cy="51.9736" r="3.16"/><circle cx="103.611" cy="51.9766" r="2.94"/><circle cx="112.178" cy="51.9766" r="2.709"/><circle cx="120.75" cy="51.9697" r="2.375"/><circle cx="129.334" cy="51.9736" r="2.265"/><circle cx="69.2881" cy="43.3965" r="4.067"/><circle cx="77.873" cy="43.3896" r="3.5"/><circle cx="86.4424" cy="43.3936" r="2.876"/><circle cx="95.0303" cy="43.3965" r="2.318"/><circle cx="9.23926" cy="43.3965" r="2.197"/><circle cx="103.601" cy="43.3945" r="1.975"/><circle cx="112.181" cy="43.3896" r="1.82"/><circle cx="120.751" cy="43.3945" r="1.694"/><circle cx="129.341" cy="43.3906" r="0.586"/><circle cx="60.7129" cy="34.8223" r="4.011"/><circle cx="69.2891" cy="34.8164" r="3.526"/><circle cx="77.8613" cy="34.8174" r="2.843"/><circle cx="17.8223" cy="34.8184" r="2.745"/><circle cx="86.4482" cy="34.8232" r="2.227"/><circle cx="95.0225" cy="34.8213" r="1.502"/><circle cx="103.598" cy="34.8193" r="1.102"/><circle cx="120.767" cy="34.8154" r="1.027"/><circle cx="9.23828" cy="34.8193" r="0.999"/><circle cx="112.188" cy="34.8184" r="0.933"/><circle cx="43.5645" cy="26.2354" r="3.718"/><circle cx="52.127" cy="26.2354" r="3.717"/><circle cx="60.7061" cy="26.2451" r="3.561"/><circle cx="34.9717" cy="26.2373" r="3.535"/><circle cx="69.293" cy="26.2373" r="3.01"/><circle cx="26.4023" cy="26.2461" r="2.676"/><circle cx="77.8701" cy="26.2402" r="2.416"/><circle cx="86.4395" cy="26.2402" r="1.723"/><circle cx="17.8203" cy="26.2402" r="1.291"/><circle cx="95.0146" cy="26.2412" r="1.022"/><circle cx="103.604" cy="26.2422" r="0.604"/><circle cx="112.176" cy="26.2422" r="0.417"/><circle cx="52.1348" cy="17.6641" r="3.158"/><circle cx="60.7188" cy="17.6621" r="3.085"/><circle cx="43.5576" cy="17.6621" r="2.967"/><circle cx="69.2842" cy="17.6592" r="2.612"/><circle cx="77.8701" cy="17.6641" r="2.153"/><circle cx="34.9766" cy="17.6611" r="2.111"/><circle cx="86.4463" cy="17.667" r="1.483"/><circle cx="26.4062" cy="17.6611" r="1.018"/><circle cx="95.0273" cy="17.6582" r="0.692"/><circle cx="103.596" cy="17.6572" r="0.324"/><circle cx="60.707" cy="9.08887" r="2.376"/><circle cx="69.2852" cy="9.08789" r="2.241"/><circle cx="52.1328" cy="9.08496" r="2.03"/><circle cx="77.873" cy="9.08691" r="1.806"/><circle cx="43.5508" cy="9.08789" r="1.283"/><circle cx="86.4492" cy="9.0791" r="1.267"/><circle cx="95.0264" cy="9.08105" r="0.551"/><circle cx="34.9736" cy="9.08496" r="0.453"/><circle cx="60.7061" cy="0.324219" r="0.324"/><circle cx="69.2861" cy="0.324219" r="0.324"/></g>
+        </svg>
+        <p class="subtitle mono">dot machine</p>
       </header>
       <button id="reset" class="text-btn">reset values</button>
 
@@ -417,6 +440,13 @@
         <div id="ctrl-bg-color"></div>
       </section>
 
+      <section class="section advanced-section">
+        <button id="advanced-toggle" class="adv-toggle text-btn" type="button" aria-expanded="false">
+          <span class="adv-chev">+</span> advanced
+        </button>
+        <div id="ctrl-advanced" class="adv-body" hidden></div>
+      </section>
+
       <section class="section actions">
         <button id="copy-btn" class="btn">Copy</button>
         <div id="dl-wrap" class="dl">
@@ -424,6 +454,7 @@
           <div id="dl-menu" class="dl-menu" hidden></div>
         </div>
         <p id="export-info" class="hint mono"></p>
+        <p class="credit mono">made with <span class="heart">♥</span> by <a href="https://soyakil.fr/" target="_blank" rel="noopener noreferrer">Achille Ernoult&nbsp;🗿</a></p>
       </section>
     </aside>
     <section id="stage">
@@ -452,9 +483,12 @@
       dotOpacity: 1.0,
       invert: false,
       dotColor: '#1C0802',
-      bgColor: '#FFF7FA',
+      bgColor: '#FFFFFF',
       dotTransparent: false,
       bgTransparent: false,
+      // Advanced
+      minDotSize: 0,       // 0 = no minimum (light areas have no dots)
+      maxDotSize: 0,       // 0 = no max cap (limited only by cellSize / dotScale)
     };
 
     const listeners = new Set();
@@ -591,56 +625,65 @@
 
     const PREVIEW_MAX = 1280;
 
-    function render() {
-      const src = state.source;
-      if (!src) return;
+    // Compute grid-aligned dimensions: canvas size is always an exact multiple
+    // of cellSize on both axes, so dots fill the output edge-to-edge — no
+    // leftover strip on the right/bottom when cellSize doesn't divide cleanly.
+    function computeDims(srcW, srcH, cs, maxSide) {
+      const scale = Math.min(1, maxSide / Math.max(srcW, srcH));
+      const tw = srcW * scale;
+      const th = srcH * scale;
+      const cols = Math.max(1, Math.round(tw / cs));
+      const rows = Math.max(1, Math.round(th / cs));
+      return { cols, rows, W: cols * cs, H: rows * cs };
+    }
 
-      const scale = Math.min(1, PREVIEW_MAX / Math.max(src.width, src.height));
-      const W = Math.round(src.width * scale);
-      const H = Math.round(src.height * scale);
-
-      if (canvas.width !== W) canvas.width = W;
-      if (canvas.height !== H) canvas.height = H;
-      updateExportInfo();
-
-      const cs = state.cellSize;
-      const cols = Math.max(1, Math.floor(W / cs));
-      const rows = Math.max(1, Math.floor(H / cs));
-
-      const luma = buildLumaBuffer(src.el, cols, rows);
-
+    function paintHalftone(targetCtx, cols, rows, cs, luma) {
+      const W = cols * cs, H = rows * cs;
       if (state.bgTransparent) {
-        ctx.clearRect(0, 0, W, H);
+        targetCtx.clearRect(0, 0, W, H);
       } else {
-        ctx.fillStyle = state.bgColor;
-        ctx.fillRect(0, 0, W, H);
+        targetCtx.fillStyle = state.bgColor;
+        targetCtx.fillRect(0, 0, W, H);
       }
-
       if (state.dotTransparent) {
-        ctx.globalCompositeOperation = 'destination-out';
-        ctx.fillStyle = '#000';
-        ctx.globalAlpha = 1;
+        targetCtx.globalCompositeOperation = 'destination-out';
+        targetCtx.fillStyle = '#000';
+        targetCtx.globalAlpha = 1;
       } else {
-        ctx.globalCompositeOperation = 'source-over';
-        ctx.fillStyle = state.dotColor;
-        ctx.globalAlpha = state.dotOpacity;
+        targetCtx.globalCompositeOperation = 'source-over';
+        targetCtx.fillStyle = state.dotColor;
+        targetCtx.globalAlpha = state.dotOpacity;
       }
-
       const halfCell = cs / 2;
+      const minR = state.minDotSize > 0 ? state.minDotSize : 0;
+      const maxRCap = state.maxDotSize > 0 ? state.maxDotSize : Infinity;
       for (let j = 0; j < rows; j++) {
         for (let i = 0; i < cols; i++) {
           const L = adjust(luma[j * cols + i], state.brightness, state.contrast);
           const darkness = state.invert ? L : 1 - L;
-          const r = darkness * halfCell * state.dotScale;
+          let r = darkness * halfCell * state.dotScale;
+          if (minR > 0) r = Math.max(minR, r);
+          r = Math.min(maxRCap, r);
           if (r < 0.4) continue;
-          ctx.beginPath();
-          ctx.arc(i * cs + halfCell, j * cs + halfCell, r, 0, Math.PI * 2);
-          ctx.fill();
+          targetCtx.beginPath();
+          targetCtx.arc(i * cs + halfCell, j * cs + halfCell, r, 0, Math.PI * 2);
+          targetCtx.fill();
         }
       }
+      targetCtx.globalCompositeOperation = 'source-over';
+      targetCtx.globalAlpha = 1;
+    }
 
-      ctx.globalCompositeOperation = 'source-over';
-      ctx.globalAlpha = 1;
+    function render() {
+      const src = state.source;
+      if (!src) return;
+      const cs = state.cellSize;
+      const { cols, rows, W, H } = computeDims(src.width, src.height, cs, PREVIEW_MAX);
+      if (canvas.width !== W) canvas.width = W;
+      if (canvas.height !== H) canvas.height = H;
+      updateExportInfo();
+      const luma = buildLumaBuffer(src.el, cols, rows);
+      paintHalftone(ctx, cols, rows, cs, luma);
     }
 
     onState(() => { if (state.source?.kind === 'image') render(); });
@@ -658,9 +701,7 @@
       const src = state.source;
       if (!src) { exportInfo.textContent = ''; return; }
       if (src.kind === 'image') {
-        const exportScale = Math.min(1, EXPORT_MAX / Math.max(src.width, src.height));
-        const W = Math.round(src.width * exportScale);
-        const H = Math.round(src.height * exportScale);
+        const { W, H } = computeDims(src.width, src.height, state.cellSize, EXPORT_MAX);
         exportInfo.textContent = `${W} × ${H}`;
       } else {
         exportInfo.textContent = `${canvas.width} × ${canvas.height} (preview)`;
@@ -718,70 +759,37 @@
 
     function renderToOffscreen() {
       const src = state.source;
-      const exportScale = Math.min(1, EXPORT_MAX / Math.max(src.width, src.height));
-      const W = Math.round(src.width * exportScale);
-      const H = Math.round(src.height * exportScale);
+      const cs = state.cellSize;
+      const { cols, rows, W, H } = computeDims(src.width, src.height, cs, EXPORT_MAX);
       const off = document.createElement('canvas');
       off.width = W; off.height = H;
       const octx = off.getContext('2d');
-
-      const cs = state.cellSize;
-      const cols = Math.max(1, Math.floor(W / cs));
-      const rows = Math.max(1, Math.floor(H / cs));
       const luma = buildLumaBuffer(src.el, cols, rows);
-
-      if (state.bgTransparent) {
-        octx.clearRect(0, 0, W, H);
-      } else {
-        octx.fillStyle = state.bgColor;
-        octx.fillRect(0, 0, W, H);
-      }
-
-      if (state.dotTransparent) {
-        octx.globalCompositeOperation = 'destination-out';
-        octx.fillStyle = '#000';
-        octx.globalAlpha = 1;
-      } else {
-        octx.fillStyle = state.dotColor;
-        octx.globalAlpha = state.dotOpacity;
-      }
-
-      const halfCell = cs / 2;
-      for (let j = 0; j < rows; j++) {
-        for (let i = 0; i < cols; i++) {
-          const L = adjust(luma[j * cols + i], state.brightness, state.contrast);
-          const darkness = state.invert ? L : 1 - L;
-          const r = darkness * halfCell * state.dotScale;
-          if (r < 0.4) continue;
-          octx.beginPath();
-          octx.arc(i * cs + halfCell, j * cs + halfCell, r, 0, Math.PI * 2);
-          octx.fill();
-        }
-      }
+      paintHalftone(octx, cols, rows, cs, luma);
       return off;
     }
 
     function exportSvg() {
       const src = state.source;
-      const exportScale = Math.min(1, EXPORT_MAX / Math.max(src.width, src.height));
-      const W = Math.round(src.width * exportScale);
-      const H = Math.round(src.height * exportScale);
       const cs = state.cellSize;
-      const cols = Math.max(1, Math.floor(W / cs));
-      const rows = Math.max(1, Math.floor(H / cs));
+      const { cols, rows, W, H } = computeDims(src.width, src.height, cs, EXPORT_MAX);
       const luma = buildLumaBuffer(src.el, cols, rows);
 
       const halfCell = cs / 2;
       const dotFill = state.dotTransparent ? 'none' : state.dotColor;
       const dotOp = state.dotTransparent ? 0 : state.dotOpacity;
       const bgRect = state.bgTransparent ? '' : `<rect width="${W}" height="${H}" fill="${state.bgColor}"/>`;
+      const minR = state.minDotSize > 0 ? state.minDotSize : 0;
+      const maxRCap = state.maxDotSize > 0 ? state.maxDotSize : Infinity;
 
       const circles = [];
       for (let j = 0; j < rows; j++) {
         for (let i = 0; i < cols; i++) {
           const L = adjust(luma[j * cols + i], state.brightness, state.contrast);
           const darkness = state.invert ? L : 1 - L;
-          const r = darkness * halfCell * state.dotScale;
+          let r = darkness * halfCell * state.dotScale;
+          if (minR > 0) r = Math.max(minR, r);
+          r = Math.min(maxRCap, r);
           if (r < 0.4) continue;
           circles.push(`<circle cx="${i * cs + halfCell}" cy="${j * cs + halfCell}" r="${r.toFixed(2)}"/>`);
         }
@@ -1114,9 +1122,22 @@
 
     const DEFAULTS = {
       cellSize: 12, dotScale: 1.0, brightness: 0, contrast: 0, dotOpacity: 1.0, invert: false,
-      dotColor: '#1C0802', bgColor: '#FFF7FA', dotTransparent: false, bgTransparent: false,
+      dotColor: '#1C0802', bgColor: '#FFFFFF', dotTransparent: false, bgTransparent: false,
+      minDotSize: 0, maxDotSize: 0,
     };
     document.getElementById('reset').addEventListener('click', () => setState({ ...DEFAULTS }));
+
+    // Advanced section
+    const advBody = document.getElementById('ctrl-advanced');
+    mountSlider({ container: advBody, key: 'minDotSize', label: 'min dot size', min: 0, max: 20, step: 0.5, format: v => v === 0 ? 'off' : `${v.toFixed(1)} px` });
+    mountSlider({ container: advBody, key: 'maxDotSize', label: 'max dot size', min: 0, max: 60, step: 0.5, format: v => v === 0 ? 'no cap' : `${v.toFixed(1)} px` });
+
+    const advToggle = document.getElementById('advanced-toggle');
+    advToggle.addEventListener('click', () => {
+      const open = advToggle.getAttribute('aria-expanded') === 'true';
+      advToggle.setAttribute('aria-expanded', String(!open));
+      advBody.hidden = open;
+    });
   </script>
 </body>
 </html>
