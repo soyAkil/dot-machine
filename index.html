@@ -84,10 +84,13 @@
     }
     .rail-foot {
       flex-shrink: 0;
-      padding: 12px 20px 14px;
+      padding: 12px 20px 12px;
       box-shadow: 0 -1px 0 var(--hairline);
       background: var(--bg);
     }
+    .rail-foot .btn { margin-bottom: 8px; }
+    .rail-foot .dl .btn { margin-bottom: 0; }
+    .rail-foot #export-info { margin-top: 10px; text-align: center; }
     .rail-foot::before {
       content: '';
       position: absolute;
@@ -421,62 +424,40 @@
     @keyframes advIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
 
     /* Credit footer */
-    .credit { font-size: 10px; color: var(--muted-soft); margin: 10px 0 0; text-align: center; letter-spacing: 0.02em; }
+    .credit { font-size: 10px; color: var(--muted-soft); margin: 8px 0 0; text-align: center; letter-spacing: 0.02em; }
     .credit .heart { color: #E84142; font-style: normal; }
     .credit a { color: var(--fg); text-decoration: none; border-bottom: 1px dotted rgba(28, 8, 2, 0.35); transition: color 160ms var(--ease), border-color 160ms var(--ease); }
     .credit a:hover { color: var(--gaffer); border-bottom-color: var(--gaffer); }
     .credit a:focus-visible { outline: 2px solid var(--gaffer); outline-offset: 3px; border-radius: 2px; }
 
-    /* Format chip selector — segmented control */
-    .format-chips {
-      display: flex;
-      gap: 2px;
-      margin-bottom: 10px;
-      padding: 3px;
-      background: rgba(28, 8, 2, 0.05);
-      border-radius: 999px;
+    /* Download dropdown menu — opens on click */
+    .dl { position: relative; margin-bottom: 0; }
+    .dl-menu {
+      position: absolute;
+      bottom: calc(100% + 6px); left: 0; right: 0;
+      background: var(--bg);
+      border: 1px solid var(--hairline-strong);
+      border-radius: 6px;
+      z-index: 10;
+      padding: 4px;
+      box-shadow: 0 6px 20px -8px rgba(0, 0, 0, 0.22), 0 1px 3px rgba(0, 0, 0, 0.06);
+      transform-origin: bottom center;
+      animation: dlIn 160ms var(--ease);
     }
-    .format-chip {
-      flex: 1;
-      padding: 6px 0;
-      border: 0;
-      background: transparent;
-      font-family: 'Geist Mono', ui-monospace, monospace;
-      font-size: 10px;
-      letter-spacing: 0.06em;
-      text-transform: uppercase;
-      cursor: pointer;
-      color: var(--muted);
-      border-radius: 999px;
-      transition: background-color 160ms var(--ease), color 160ms var(--ease), box-shadow 200ms var(--ease), opacity 160ms var(--ease);
+    @keyframes dlIn {
+      from { opacity: 0; transform: translateY(4px) scale(0.98); }
+      to   { opacity: 1; transform: none; }
     }
-    .format-chip:hover:not(.active):not(:disabled) { color: var(--fg); }
-    .format-chip.active { background: var(--bg); color: var(--fg); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06), 0 0 0 1px var(--hairline); }
-    .format-chip:disabled { opacity: 0.3; cursor: not-allowed; }
-
-    .actions-row {
-      display: grid;
-      grid-template-columns: 1fr 1.4fr;
-      gap: 8px;
-      margin-bottom: 4px;
+    .dl-menu button {
+      display: block; width: 100%;
+      padding: 8px 12px;
+      border: 0; background: none; text-align: left; cursor: pointer;
+      font-family: inherit; font-size: 12px; color: var(--fg);
+      border-radius: 4px;
+      transition: background-color 140ms var(--ease);
     }
-    .actions-row .btn { margin-bottom: 0; padding: 9px 10px; }
-    .actions-row .btn .fmt-hint {
-      display: inline-block;
-      margin-left: 4px;
-      padding: 2px 6px;
-      font-size: 9px;
-      letter-spacing: 0.06em;
-      border-radius: 999px;
-      background: rgba(28, 8, 2, 0.08);
-      color: var(--muted);
-      vertical-align: middle;
-      transform: translateY(-0.5px);
-    }
-    .actions-row .btn.primary .fmt-hint {
-      background: rgba(255, 255, 255, 0.18);
-      color: rgba(255, 255, 255, 0.85);
-    }
+    .dl-menu button:hover:not(:disabled) { background: rgba(28, 8, 2, 0.06); }
+    .dl-menu button:disabled { opacity: 0.4; cursor: not-allowed; }
 
     .btn {
       display: block; width: 100%;
@@ -522,10 +503,11 @@
     .dl-menu button:hover:not(:disabled) { background: rgba(28, 8, 2, 0.06); }
     .dl-menu button:disabled { opacity: 0.4; cursor: not-allowed; }
 
-    /* Stage chrome — bottom toolbar shown when a media is loaded */
+    /* Stage chrome — top toolbar shown when a media is loaded.
+       Sits at the top so it's never hidden by the bottom recording toast. */
     #stage-chrome {
       position: absolute;
-      bottom: 24px;
+      top: 16px;
       left: 50%;
       transform: translateX(-50%);
       display: flex;
@@ -537,9 +519,13 @@
       -webkit-backdrop-filter: blur(8px);
       border: 1px solid var(--hairline-strong);
       border-radius: 999px;
-      box-shadow: 0 8px 28px -8px rgba(0, 0, 0, 0.18), 0 1px 3px rgba(0, 0, 0, 0.06);
+      box-shadow: 0 6px 22px -10px rgba(0, 0, 0, 0.18), 0 1px 3px rgba(0, 0, 0, 0.06);
       z-index: 4;
-      animation: toastIn 220ms var(--ease);
+      animation: toastInTop 220ms var(--ease);
+    }
+    @keyframes toastInTop {
+      from { opacity: 0; transform: translate(-50%, -8px); }
+      to   { opacity: 1; transform: translate(-50%, 0); }
     }
     .chrome-btn {
       display: inline-flex; align-items: center; justify-content: center;
@@ -649,10 +635,10 @@
       </div>
 
       <div class="rail-foot">
-        <div id="format-chips" class="format-chips" hidden></div>
-        <div class="actions-row">
-          <button id="copy-btn" class="btn" type="button">Copy <span class="fmt-hint mono">PNG</span></button>
-          <button id="dl-btn" class="btn primary" type="button">Download <span class="fmt-hint mono">PNG</span></button>
+        <button id="copy-btn" class="btn" type="button">Copy</button>
+        <div id="dl-wrap" class="dl">
+          <button id="dl-btn" class="btn primary" type="button">Download</button>
+          <div id="dl-menu" class="dl-menu" hidden></div>
         </div>
         <p id="export-info" class="hint mono"></p>
         <p class="credit mono">made with <span class="heart">♥</span> by <a href="https://soyakil.fr/" target="_blank" rel="noopener noreferrer">Achille Ernoult&nbsp;🗿</a></p>
@@ -803,16 +789,12 @@
 
     const canvasWrap = canvas.parentElement;
     const stageChrome = document.getElementById('stage-chrome');
-    const formatChipsEl = document.getElementById('format-chips');
 
     function onSourceReady() {
       empty.hidden = true;
       canvasWrap.hidden = false;
       stageChrome.hidden = false;
-      formatChipsEl.hidden = false;
       setState({ zoom: 1 });
-      buildFormatChips();
-      updateActionButtons();
       render();
     }
 
@@ -820,7 +802,6 @@
       empty.hidden = false;
       canvasWrap.hidden = true;
       stageChrome.hidden = true;
-      formatChipsEl.hidden = true;
     }
 
     function startVideoLoop() {
@@ -952,67 +933,47 @@
     }
     onState(updateExportInfo);
 
-    function buildFormatChips() {
-      formatChipsEl.innerHTML = '';
-      const transOn = state.dotTransparent || state.bgTransparent;
-      const isImg = state.source?.kind === 'image';
-      const list = isImg
-        ? [
-            { id: 'png',  label: 'PNG' },
-            { id: 'jpeg', label: 'JPEG', disabled: transOn, title: transOn ? 'no alpha — disabled' : '' },
-            { id: 'svg',  label: 'SVG' },
-          ]
-        : VID_FORMATS.map(f => ({
-            id: f.id,
-            label: f.label,
-            disabled: (f.label !== 'GIF' && transOn) || !state.source?.durationOk,
-            title: !state.source?.durationOk ? "duration unknown — can't export" : (transOn && f.label !== 'GIF' ? 'no alpha — disabled' : ''),
-          }));
-      const stateKey = isImg ? 'imgFormat' : 'vidFormat';
-      list.forEach(f => {
-        const b = document.createElement('button');
-        b.type = 'button';
-        b.className = 'format-chip' + (state[stateKey] === f.id ? ' active' : '');
-        b.textContent = f.label;
-        if (f.disabled) b.disabled = true;
-        if (f.title) b.title = f.title;
-        b.addEventListener('click', () => {
-          setState({ [stateKey]: f.id });
-          buildFormatChips();
-          updateActionButtons();
-        });
-        formatChipsEl.appendChild(b);
-      });
-      // If currently selected format is now disabled, fall back to first enabled
-      const selected = list.find(f => f.id === state[stateKey]);
-      if (!selected || selected.disabled) {
-        const fallback = list.find(f => !f.disabled);
-        if (fallback && fallback.id !== state[stateKey]) {
-          setState({ [stateKey]: fallback.id });
-          buildFormatChips();
-          updateActionButtons();
-        }
-      }
-    }
-
-    function updateActionButtons() {
-      const isImg = state.source?.kind === 'image';
-      const fmtId = isImg ? state.imgFormat : state.vidFormat;
-      const fmtLabel = (isImg ? fmtId : fmtId).toUpperCase();
-      copyBtn.querySelector('.fmt-hint').textContent = isImg ? fmtLabel : 'PNG';
-      dlBtn.querySelector('.fmt-hint').textContent = fmtLabel;
-      // Hide Copy for video (no useful clipboard action for video formats)
-      copyBtn.style.display = isImg ? '' : 'none';
-    }
-
-    dlBtn.addEventListener('click', () => {
+    dlBtn.addEventListener('click', e => {
       if (!state.source) return;
+      e.stopPropagation();
+      buildDlMenu();
+      dlMenu.hidden = !dlMenu.hidden;
+    });
+    document.addEventListener('click', e => {
+      if (!e.target.closest('#dl-wrap')) dlMenu.hidden = true;
+    });
+
+    function buildDlMenu() {
+      dlMenu.innerHTML = '';
+      const transOn = state.dotTransparent || state.bgTransparent;
       if (state.source.kind === 'image') {
-        exportImage(state.imgFormat);
+        addOption('PNG', () => exportImage('png'));
+        addOption('JPEG', () => exportImage('jpeg'), transOn, transOn ? "no alpha — disabled" : '');
+        addOption('SVG', () => exportImage('svg'));
       } else {
-        const fmt = VID_FORMATS.find(f => f.id === state.vidFormat);
-        if (fmt) exportVideo(fmt);
+        const canRecord = state.source.durationOk;
+        VID_FORMATS.forEach(f => {
+          const isBitmapVideo = f.label !== 'GIF';
+          const disabled = (isBitmapVideo && transOn) || !canRecord;
+          const tooltip = !canRecord ? "duration unknown — can't export" : (transOn && isBitmapVideo ? "no alpha — disabled" : '');
+          addOption(f.label, () => exportVideo(f), disabled, tooltip);
+        });
       }
+    }
+
+    function addOption(label, fn, disabled = false, tooltip = '') {
+      const b = document.createElement('button');
+      b.textContent = label;
+      b.type = 'button';
+      if (disabled) b.disabled = true;
+      if (tooltip) b.title = tooltip;
+      b.addEventListener('click', () => { dlMenu.hidden = true; fn(); });
+      dlMenu.appendChild(b);
+    }
+
+    // Hide Copy for video sources (no useful clipboard action there)
+    onState(() => {
+      copyBtn.style.display = state.source?.kind === 'video' ? 'none' : '';
     });
 
     async function exportImage(fmt) {
@@ -1461,17 +1422,6 @@
       canvas.style.setProperty('--zoom', state.zoom);
       canvas.classList.toggle('zoomed', state.zoom > 1.001);
       if (zoomValEl) zoomValEl.textContent = `${Math.round(state.zoom * 100)}%`;
-    });
-
-    // Rebuild chips when transparency toggles disable/enable formats
-    let lastTransOn = false;
-    onState(() => {
-      const trans = state.dotTransparent || state.bgTransparent;
-      if (trans !== lastTransOn && state.source) {
-        lastTransOn = trans;
-        buildFormatChips();
-        updateActionButtons();
-      }
     });
 
     // Advanced section
