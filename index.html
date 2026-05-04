@@ -77,6 +77,30 @@
     .section-label { font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: rgba(28, 8, 2, 0.5); margin: 0 0 12px; }
 
     #stage.drop-active { background: rgba(173, 231, 255, 0.15); }
+
+    .text-btn { background: none; border: 0; padding: 0; color: rgba(28, 8, 2, 0.5); font-family: 'Geist Mono', ui-monospace, monospace; font-size: 11px; cursor: pointer; margin-bottom: 16px; }
+    .text-btn:hover { color: var(--fg); text-decoration: underline; }
+
+    .row { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 8px; margin-bottom: 12px; }
+    .row label { font-size: 11px; color: var(--fg); }
+    .row .val { font-size: 11px; color: rgba(28, 8, 2, 0.7); min-width: 56px; text-align: right; font-variant-numeric: tabular-nums; }
+    .row input[type='range'] { grid-column: 1 / -1; appearance: none; -webkit-appearance: none; width: 100%; height: 2px; background: var(--hairline); border-radius: 1px; outline: none; }
+    .row input[type='range']::-webkit-slider-thumb { appearance: none; width: 12px; height: 12px; border-radius: 50%; background: var(--gaffer); cursor: pointer; }
+    .row input[type='range']::-moz-range-thumb { width: 12px; height: 12px; border-radius: 50%; background: var(--gaffer); border: 0; cursor: pointer; }
+    .row.check { grid-template-columns: 1fr auto; cursor: pointer; }
+    .row.check input { accent-color: var(--gaffer); }
+
+    .color-block { display: flex; flex-direction: column; gap: 10px; }
+    .color-row { display: flex; align-items: center; gap: 10px; }
+    .color-row input[type='color'] { -webkit-appearance: none; appearance: none; width: 28px; height: 28px; border: 1px solid var(--hairline); border-radius: 50%; padding: 0; background: none; cursor: pointer; }
+    .color-row input[type='color']::-webkit-color-swatch-wrapper { padding: 0; }
+    .color-row input[type='color']::-webkit-color-swatch { border: none; border-radius: 50%; }
+    .color-row input[type='color']::-moz-color-swatch { border: none; border-radius: 50%; }
+    .hex { font-size: 11px; color: rgba(28, 8, 2, 0.7); }
+    .swatches { display: flex; gap: 6px; }
+    .sw { width: 18px; height: 18px; border-radius: 50%; border: 1px solid var(--hairline); padding: 0; cursor: pointer; transition: transform 0.1s ease; }
+    .sw:hover { transform: scale(1.15); }
+    .hint { font-size: 10px; color: rgba(28, 8, 2, 0.5); margin: 0; font-family: 'Geist Mono', ui-monospace, monospace; }
   </style>
 </head>
 <body>
@@ -86,6 +110,28 @@
         <h1 class="title">DOT MACHINE</h1>
         <p class="subtitle mono">halftone tool</p>
       </header>
+      <button id="reset" class="text-btn">reset values</button>
+
+      <section class="section">
+        <p class="section-label">geometry</p>
+        <div id="ctrl-geom"></div>
+      </section>
+      <section class="section">
+        <p class="section-label">tone</p>
+        <div id="ctrl-tone"></div>
+      </section>
+      <section class="section">
+        <p class="section-label">dots</p>
+        <div id="ctrl-dots"></div>
+      </section>
+      <section class="section">
+        <p class="section-label">dot color</p>
+        <div id="ctrl-dot-color"></div>
+      </section>
+      <section class="section">
+        <p class="section-label">background</p>
+        <div id="ctrl-bg-color"></div>
+      </section>
     </aside>
     <section id="stage">
       <div id="empty">drop an image or video here</div>
@@ -303,6 +349,88 @@
     onState(() => { if (state.source?.kind === 'image') render(); });
 
     // ============================================================
+    // SECTION 5: CONTROLS — bind UI to state
+    // ============================================================
+    function mountSlider({ container, key, label, min, max, step, format }) {
+      const row = document.createElement('div');
+      row.className = 'row';
+      row.innerHTML = `
+        <label>${label}</label>
+        <span class="val mono"></span>
+        <input type="range" min="${min}" max="${max}" step="${step}" value="${state[key]}" />
+      `;
+      const valEl = row.querySelector('.val');
+      const input = row.querySelector('input');
+      input.addEventListener('input', () => {
+        setState({ [key]: parseFloat(input.value) });
+      });
+      onState(() => { input.value = state[key]; valEl.textContent = format(state[key]); });
+      container.appendChild(row);
+    }
+
+    function mountCheckbox({ container, key, label }) {
+      const row = document.createElement('label');
+      row.className = 'row check';
+      row.innerHTML = `<span>${label}</span><input type="checkbox" />`;
+      const input = row.querySelector('input');
+      input.addEventListener('change', () => setState({ [key]: input.checked }));
+      onState(() => { input.checked = state[key]; });
+      container.appendChild(row);
+    }
+
+    const PALETTE = [
+      { name: 'Core',     hex: '#CEADFF' },
+      { name: 'Analog',   hex: '#F6B9A2' },
+      { name: 'Rush',     hex: '#F2ADFF' },
+      { name: 'Keyframe', hex: '#ADE7FF' },
+      { name: 'Canvas',   hex: '#FFF7FA' },
+      { name: 'Gaffer',   hex: '#1C0802' },
+    ];
+
+    function mountColor({ container, colorKey, transparentKey, otherTransparentKey }) {
+      const wrap = document.createElement('div');
+      wrap.className = 'color-block';
+      wrap.innerHTML = `
+        <div class="color-row">
+          <input type="color" value="${state[colorKey]}" />
+          <span class="hex mono"></span>
+        </div>
+        <div class="swatches"></div>
+        <label class="row check trans"><span>transparent</span><input type="checkbox" /></label>
+        <p class="hint trans-hint" hidden>can't make both transparent</p>
+      `;
+      const picker = wrap.querySelector('input[type="color"]');
+      const hexEl = wrap.querySelector('.hex');
+      const swatchesEl = wrap.querySelector('.swatches');
+      const trans = wrap.querySelector('.trans input');
+      const hint = wrap.querySelector('.trans-hint');
+
+      PALETTE.forEach(({ name, hex }) => {
+        const sw = document.createElement('button');
+        sw.className = 'sw';
+        sw.type = 'button';
+        sw.style.background = hex;
+        sw.title = name;
+        sw.addEventListener('click', () => setState({ [colorKey]: hex }));
+        swatchesEl.appendChild(sw);
+      });
+
+      picker.addEventListener('input', () => setState({ [colorKey]: picker.value }));
+      trans.addEventListener('change', () => setState({ [transparentKey]: trans.checked }));
+
+      onState(() => {
+        picker.value = state[colorKey];
+        hexEl.textContent = state[colorKey].toUpperCase();
+        trans.checked = state[transparentKey];
+        const otherOn = state[otherTransparentKey];
+        trans.disabled = otherOn && !state[transparentKey];
+        hint.hidden = !trans.disabled;
+      });
+
+      container.appendChild(wrap);
+    }
+
+    // ============================================================
     // SECTION 8: BOOT — debug asserts
     // ============================================================
     function runDebugAsserts() {
@@ -319,6 +447,35 @@
       console.log('asserts: ok');
     }
     if (location.search.includes('debug')) runDebugAsserts();
+
+    // Mount controls
+    const fmtPx = v => `${Math.round(v)} px`;
+    const fmtFloat = v => `${v >= 0 ? '+' : ''}${v.toFixed(2)}`;
+    const fmtPct = v => `${Math.round(v * 100)}%`;
+
+    mountSlider({ container: document.getElementById('ctrl-geom'), key: 'cellSize', label: 'cell size', min: 4, max: 80, step: 1, format: fmtPx });
+    mountSlider({ container: document.getElementById('ctrl-geom'), key: 'dotScale', label: 'dot scale', min: 0, max: 1.5, step: 0.01, format: v => v.toFixed(2) });
+
+    mountSlider({ container: document.getElementById('ctrl-tone'), key: 'brightness', label: 'brightness', min: -1, max: 1, step: 0.01, format: fmtFloat });
+    mountSlider({ container: document.getElementById('ctrl-tone'), key: 'contrast', label: 'contrast', min: -1, max: 1, step: 0.01, format: fmtFloat });
+
+    mountSlider({ container: document.getElementById('ctrl-dots'), key: 'dotOpacity', label: 'opacity', min: 0, max: 1, step: 0.01, format: fmtPct });
+    mountCheckbox({ container: document.getElementById('ctrl-dots'), key: 'invert', label: 'invert' });
+
+    mountColor({
+      container: document.getElementById('ctrl-dot-color'),
+      colorKey: 'dotColor', transparentKey: 'dotTransparent', otherTransparentKey: 'bgTransparent',
+    });
+    mountColor({
+      container: document.getElementById('ctrl-bg-color'),
+      colorKey: 'bgColor', transparentKey: 'bgTransparent', otherTransparentKey: 'dotTransparent',
+    });
+
+    const DEFAULTS = {
+      cellSize: 12, dotScale: 1.0, brightness: 0, contrast: 0, dotOpacity: 1.0, invert: false,
+      dotColor: '#1C0802', bgColor: '#FFF7FA', dotTransparent: false, bgTransparent: false,
+    };
+    document.getElementById('reset').addEventListener('click', () => setState({ ...DEFAULTS }));
   </script>
 </body>
 </html>
