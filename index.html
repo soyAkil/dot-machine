@@ -518,11 +518,15 @@
     .zoom-val:hover { background: rgba(28, 8, 2, 0.06); color: var(--fg); }
 
     .chrome-default { display: flex; align-items: center; gap: 4px; }
+    .chrome-default[hidden] { display: none; }
     .chrome-progress {
       display: flex; align-items: center; gap: 12px;
       padding: 4px 8px 4px 14px;
       animation: chromeProgressIn 280ms var(--ease);
     }
+    .chrome-progress[hidden] { display: none; }
+    .chrome-progress.success .progress-label { color: #1A8A3F; }
+    .chrome-progress.success .progress-bar-fill { background: #1A8A3F; }
     @keyframes chromeProgressIn {
       from { opacity: 0; transform: translateY(-2px); }
       to { opacity: 1; transform: none; }
@@ -1079,7 +1083,18 @@
     }
     function hideProgress() {
       chromeProgress.hidden = true;
+      chromeProgress.classList.remove('success');
+      cancelBtn.hidden = false;
       chromeDefault.hidden = false;
+    }
+    function showSuccess(text) {
+      chromeProgressLabel.textContent = text;
+      chromeProgressFill.classList.remove('indeterminate');
+      chromeProgressFill.style.setProperty('--progress', '100%');
+      chromeProgressPct.textContent = '';
+      chromeProgress.classList.add('success');
+      cancelBtn.hidden = true;
+      setTimeout(hideProgress, 1800);
     }
 
     let activeRecorder = null;
@@ -1137,18 +1152,20 @@
       const safetyTimer = setTimeout(stopRecorder, (v.duration + 1) * 1000);
 
       recorder.onstop = () => {
-        hideProgress();
         activeRecorder = null;
         try { stream.getTracks().forEach(t => t.stop()); } catch {}
         if (cancelled) {
           console.log('Recording cancelled — no file produced');
+          hideProgress();
         } else if (chunks.length === 0) {
           console.error('Recording produced no data');
+          hideProgress();
           alert('Recording produced no data. The format may not be supported. Try a different one.');
         } else {
           const blob = new Blob(chunks, { type: format.mime });
           console.log(`Recording done: ${chunks.length} chunks, ${blob.size} bytes`);
           downloadBlob(blob, `dot-machine.${format.ext}`);
+          showSuccess(`${format.label} downloaded ✓`);
         }
         v.loop = true;
         v.play().catch(() => {});
@@ -1238,8 +1255,12 @@
             chromeProgressLabel.textContent = 'Encoding GIF…';
             gif.on('progress', p => setProgress(0.5 + p * 0.5));
             gif.on('finished', blob => {
-              hideProgress();
-              if (!cancelled) downloadBlob(blob, 'dot-machine.gif');
+              if (!cancelled) {
+                downloadBlob(blob, 'dot-machine.gif');
+                showSuccess('GIF downloaded ✓');
+              } else {
+                hideProgress();
+              }
               v.loop = true;
               v.play().catch(() => {});
               resolve();
@@ -1453,15 +1474,6 @@
     }
     function resetPan() { pan.x = 0; pan.y = 0; applyTransform(); }
 
-    // Match the canvas-wrap background to the canvas's drawn background,
-    // so any gap between the canvas's visible rect and the wrap edges blends
-    // seamlessly — no gray strips when zooming or when the image's aspect
-    // ratio doesn't match the stage.
-    function updateWrapBackground() {
-      canvasWrap.style.background = state.bgTransparent ? '' : state.bgColor;
-    }
-    onState(updateWrapBackground);
-
     // Recompute layout when window resizes (wrap dimensions change)
     window.addEventListener('resize', () => applyTransform());
 
@@ -1478,19 +1490,27 @@
       if (!keepPan) { pan.x = 0; pan.y = 0; }
       setState({ zoom: newZoom });
     }
+    // Zoom centered on a specific viewport point (e.g. mouse cursor).
+    // Adjusts pan so the same content stays under that point after zoom.
+    function zoomAt(newZoom, atClientX, atClientY) {
+      const wrapRect = canvasWrap.getBoundingClientRect();
+      const wrapCx = wrapRect.left + wrapRect.width / 2;
+      const wrapCy = wrapRect.top + wrapRect.height / 2;
+      const f = clampZoom(newZoom) / state.zoom;
+      pan.x = (atClientX - wrapCx) * (1 - f) + pan.x * f;
+      pan.y = (atClientY - wrapCy) * (1 - f) + pan.y * f;
+      setState({ zoom: clampZoom(newZoom) });
+    }
     document.querySelector('#stage-chrome .zoom-in').addEventListener('click', () => setZoom(nextZoom(+1)));
     document.querySelector('#stage-chrome .zoom-out').addEventListener('click', () => setZoom(nextZoom(-1)));
     document.querySelector('#stage-chrome .zoom-val').addEventListener('click', () => setZoom(1));
 
-    // Wheel zoom — debounced to skip the snappy transition while continuously scrolling
-    let wheelTimer = null;
+    // Wheel zoom — anchors zoom on the cursor position
     canvasWrap.addEventListener('wheel', e => {
       if (!state.source) return;
       e.preventDefault();
       const factor = e.deltaY < 0 ? 1.08 : 1 / 1.08;
-      const next = clampZoom(state.zoom * factor);
-      // For wheel, skip pan reset so user can keep their pan position
-      setState({ zoom: next });
+      zoomAt(state.zoom * factor, e.clientX, e.clientY);
     }, { passive: false });
 
     // Drag-to-pan when zoomed
