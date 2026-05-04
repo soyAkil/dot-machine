@@ -71,10 +71,32 @@
     #stage { animation-delay: 80ms; animation-duration: 480ms; }
 
     #rail {
-      padding: 24px 20px;
-      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
       box-shadow: 1px 0 0 var(--hairline);
+      overflow: hidden;
     }
+    .rail-scroll {
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+      padding: 24px 20px 8px;
+    }
+    .rail-foot {
+      flex-shrink: 0;
+      padding: 12px 20px 14px;
+      box-shadow: 0 -1px 0 var(--hairline);
+      background: var(--bg);
+    }
+    .rail-foot::before {
+      content: '';
+      position: absolute;
+      left: 0; right: 0; bottom: 100%;
+      height: 18px;
+      background: linear-gradient(to top, var(--bg), rgba(255, 255, 255, 0));
+      pointer-events: none;
+    }
+    .rail-foot { position: relative; }
 
     #stage {
       position: relative;
@@ -91,11 +113,45 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 14px;
+      gap: 0;
+      max-width: 420px;
+      padding: 56px 32px;
       transition: opacity 240ms var(--ease), filter 240ms var(--ease);
+      animation: emptyIn 600ms var(--ease) both;
+    }
+    @keyframes emptyIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: none; }
     }
     #stage.drop-active #empty { opacity: 0.7; filter: blur(0.4px); }
 
+    .empty-icon {
+      width: 96px; height: 96px;
+      color: var(--gaffer);
+      opacity: 0.92;
+      animation: emptyIconBreath 5s ease-in-out infinite;
+    }
+    @keyframes emptyIconBreath {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.025); }
+    }
+    .empty-title {
+      font-size: 24px;
+      font-weight: 600;
+      color: var(--gaffer);
+      margin: 24px 0 0;
+      letter-spacing: -0.01em;
+      text-wrap: balance;
+      text-align: center;
+    }
+    .empty-sub {
+      font-family: 'Geist Mono', ui-monospace, monospace;
+      font-size: 12px;
+      color: var(--muted);
+      margin: 8px 0 28px;
+      letter-spacing: 0.02em;
+      text-align: center;
+    }
     .empty-btn {
       font-family: inherit;
       font-size: 13px;
@@ -114,24 +170,60 @@
     .empty-btn:active { transform: scale(0.96); }
     .empty-btn:focus-visible { outline: 2px solid var(--gaffer); outline-offset: 3px; }
     .empty-hint {
+      display: flex;
+      align-items: center;
+      gap: 8px;
       font-family: 'Geist Mono', ui-monospace, monospace;
-      font-size: 11px;
-      color: var(--muted);
-      margin: 0;
-      letter-spacing: 0.02em;
+      font-size: 10px;
+      color: var(--muted-soft);
+      margin: 16px 0 0;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
       pointer-events: none;
     }
+    .empty-hint::before, .empty-hint::after {
+      content: ''; flex: 0 0 24px; height: 1px; background: var(--hairline-strong);
+    }
+    .empty-formats {
+      display: flex;
+      gap: 6px;
+      margin-top: 20px;
+      pointer-events: none;
+    }
+    .empty-formats span {
+      font-family: 'Geist Mono', ui-monospace, monospace;
+      font-size: 9px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted-soft);
+      padding: 3px 8px;
+      border: 1px solid var(--hairline);
+      border-radius: 999px;
+    }
 
+    .canvas-wrap {
+      max-width: 100%;
+      max-height: 100%;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
     #canvas {
       max-width: 100%;
       max-height: 100%;
       display: block;
+      transform: scale(var(--zoom, 1));
+      transform-origin: center;
+      transition: transform 220ms var(--ease);
       /* Pure black at low alpha — never tinted neutrals (would read as grime) */
       box-shadow:
         0 0 0 1px rgba(0, 0, 0, 0.06),
         0 1px 2px rgba(0, 0, 0, 0.04),
         0 6px 24px -10px rgba(0, 0, 0, 0.12);
     }
+    #canvas.dragging { cursor: grabbing; transition: none; }
+    #canvas.zoomed { cursor: grab; }
 
     /* Drop-active: subtle dashed inset ring on the stage */
     #stage::after {
@@ -151,9 +243,10 @@
     /* Robust empty-state hiding — beats #empty's display:flex */
     #empty[hidden] { display: none !important; }
 
-    #rail-head { margin-bottom: 20px; display: flex; flex-direction: column; gap: 8px; }
-    .logo { display: block; width: 100%; max-width: 220px; height: auto; color: var(--gaffer); }
-    .subtitle { font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); margin: 0; }
+    #rail-head { margin-bottom: 20px; display: grid; grid-template-columns: 32px 1fr; align-items: center; column-gap: 10px; row-gap: 2px; }
+    .brand-icon { display: block; width: 32px; height: 32px; color: var(--gaffer); grid-row: 1 / 3; }
+    .brand-name { font-size: 13px; font-weight: 600; letter-spacing: 0.04em; color: var(--gaffer); }
+    .subtitle { font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--muted); margin: 0; }
 
     .section { padding: 12px 0; box-shadow: inset 0 1px 0 var(--hairline); }
     .section:first-of-type { box-shadow: none; padding-top: 0; }
@@ -176,9 +269,40 @@
     .text-btn:hover { color: var(--fg); }
     .text-btn:focus-visible { outline: 2px solid var(--gaffer); outline-offset: 4px; border-radius: 2px; }
 
+    /* Reset button — actually looks like a button */
+    #reset {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 5px 10px 5px 8px;
+      background: var(--bg);
+      border: 1px solid var(--hairline-strong);
+      border-radius: 999px;
+      font-family: 'Geist Mono', ui-monospace, monospace;
+      font-size: 10px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--muted);
+      cursor: pointer;
+      margin-bottom: 18px;
+      transition: color 160ms var(--ease), border-color 160ms var(--ease), background-color 160ms var(--ease), transform 120ms var(--ease);
+    }
+    #reset::before { content: ''; position: static; inset: auto; }
+    #reset::after {
+      content: '↺';
+      font-size: 12px;
+      line-height: 1;
+      order: -1;
+      transition: transform 360ms var(--ease);
+    }
+    #reset:hover { color: var(--fg); border-color: var(--fg); background: rgba(28, 8, 2, 0.04); }
+    #reset:hover::after { transform: rotate(-180deg); }
+    #reset:active { transform: scale(0.96); }
+
     .row { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 4px 8px; margin-bottom: 10px; }
     .row label { font-size: 11px; color: var(--fg); }
-    .row .val { font-size: 11px; color: var(--muted); min-width: 56px; text-align: right; font-variant-numeric: tabular-nums; letter-spacing: 0.01em; }
+    .row .val { font-size: 11px; color: var(--muted); min-width: 56px; text-align: right; font-variant-numeric: tabular-nums; letter-spacing: 0.01em; cursor: text; padding: 2px 4px; border-radius: 3px; transition: background-color 160ms var(--ease), color 160ms var(--ease); }
+    .row .val:hover { background: rgba(28, 8, 2, 0.06); color: var(--fg); }
+    .row .val:focus-visible { outline: 2px solid var(--gaffer); outline-offset: 1px; }
+    .row .val-edit { font-size: 11px; min-width: 56px; max-width: 56px; padding: 2px 4px; border: 1px solid var(--gaffer); border-radius: 3px; text-align: right; font-variant-numeric: tabular-nums; font-family: 'Geist Mono', ui-monospace, monospace; outline: none; background: var(--bg); color: var(--fg); }
 
     /* Custom range — track, fill, thumb */
     .row input[type='range'] {
@@ -303,22 +427,55 @@
     .credit a:hover { color: var(--gaffer); border-bottom-color: var(--gaffer); }
     .credit a:focus-visible { outline: 2px solid var(--gaffer); outline-offset: 3px; border-radius: 2px; }
 
-    /* Action bar — sticky with a soft fade above instead of a hard divider */
-    .section.actions {
-      position: sticky;
-      bottom: 0;
-      padding-top: 20px;
-      padding-bottom: 6px;
-      background: var(--bg);
-      box-shadow: none;
+    /* Format chip selector — segmented control */
+    .format-chips {
+      display: flex;
+      gap: 2px;
+      margin-bottom: 10px;
+      padding: 3px;
+      background: rgba(28, 8, 2, 0.05);
+      border-radius: 999px;
     }
-    .section.actions::before {
-      content: '';
-      position: absolute;
-      left: 0; right: 0; bottom: 100%;
-      height: 24px;
-      background: linear-gradient(to top, var(--bg), rgba(255, 255, 255, 0));
-      pointer-events: none;
+    .format-chip {
+      flex: 1;
+      padding: 6px 0;
+      border: 0;
+      background: transparent;
+      font-family: 'Geist Mono', ui-monospace, monospace;
+      font-size: 10px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      cursor: pointer;
+      color: var(--muted);
+      border-radius: 999px;
+      transition: background-color 160ms var(--ease), color 160ms var(--ease), box-shadow 200ms var(--ease), opacity 160ms var(--ease);
+    }
+    .format-chip:hover:not(.active):not(:disabled) { color: var(--fg); }
+    .format-chip.active { background: var(--bg); color: var(--fg); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06), 0 0 0 1px var(--hairline); }
+    .format-chip:disabled { opacity: 0.3; cursor: not-allowed; }
+
+    .actions-row {
+      display: grid;
+      grid-template-columns: 1fr 1.4fr;
+      gap: 8px;
+      margin-bottom: 4px;
+    }
+    .actions-row .btn { margin-bottom: 0; padding: 9px 10px; }
+    .actions-row .btn .fmt-hint {
+      display: inline-block;
+      margin-left: 4px;
+      padding: 2px 6px;
+      font-size: 9px;
+      letter-spacing: 0.06em;
+      border-radius: 999px;
+      background: rgba(28, 8, 2, 0.08);
+      color: var(--muted);
+      vertical-align: middle;
+      transform: translateY(-0.5px);
+    }
+    .actions-row .btn.primary .fmt-hint {
+      background: rgba(255, 255, 255, 0.18);
+      color: rgba(255, 255, 255, 0.85);
     }
 
     .btn {
@@ -365,7 +522,49 @@
     .dl-menu button:hover:not(:disabled) { background: rgba(28, 8, 2, 0.06); }
     .dl-menu button:disabled { opacity: 0.4; cursor: not-allowed; }
 
-    /* Progress as a discreet toast at the bottom of the stage — never covers the canvas */
+    /* Stage chrome — bottom toolbar shown when a media is loaded */
+    #stage-chrome {
+      position: absolute;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 4px;
+      background: rgba(255, 255, 255, 0.92);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      border: 1px solid var(--hairline-strong);
+      border-radius: 999px;
+      box-shadow: 0 8px 28px -8px rgba(0, 0, 0, 0.18), 0 1px 3px rgba(0, 0, 0, 0.06);
+      z-index: 4;
+      animation: toastIn 220ms var(--ease);
+    }
+    .chrome-btn {
+      display: inline-flex; align-items: center; justify-content: center;
+      gap: 6px;
+      padding: 6px 12px;
+      min-height: 30px;
+      border: 0;
+      background: transparent;
+      color: var(--fg);
+      font-family: inherit;
+      font-size: 11px;
+      cursor: pointer;
+      border-radius: 999px;
+      transition: background-color 160ms var(--ease), transform 120ms var(--ease);
+    }
+    .chrome-btn:hover:not(:disabled) { background: rgba(28, 8, 2, 0.06); }
+    .chrome-btn:active:not(:disabled) { transform: scale(0.96); }
+    .chrome-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .chrome-btn.icon { padding: 6px; min-width: 30px; font-size: 14px; line-height: 1; }
+    .chrome-divider { width: 1px; height: 18px; background: var(--hairline-strong); margin: 0 2px; }
+    .chrome-zoom { display: flex; align-items: center; }
+    .zoom-val { min-width: 40px; text-align: center; font-family: 'Geist Mono', ui-monospace, monospace; font-size: 10px; color: var(--muted); cursor: pointer; padding: 4px 4px; border-radius: 4px; transition: background-color 160ms var(--ease); }
+    .zoom-val:hover { background: rgba(28, 8, 2, 0.06); color: var(--fg); }
+
+    /* Progress toast — replaces stage-chrome when active */
     #progress {
       position: absolute;
       bottom: 24px;
@@ -410,11 +609,12 @@
 <body>
   <main id="app">
     <aside id="rail">
+      <div class="rail-scroll">
       <header id="rail-head">
-        <svg class="logo" viewBox="0 0 944 134" xmlns="http://www.w3.org/2000/svg" aria-label="LA BOULE">
-          <path d="M883.409 0.000976562C919.455 0.00130517 943.172 23.9997 943.172 71.3506V77.8428C943.172 80.4884 941.036 82.6351 938.381 82.6387C923.922 82.6558 881.095 82.7055 870.836 82.7139C869.682 82.7148 868.729 83.5358 868.717 84.6855C868.672 88.8774 870.285 98.2988 885.688 98.2988C893.432 98.2985 899.307 93.6759 903.61 88.167C905.25 86.0684 908.209 85.3659 910.465 86.7881L932.954 100.97C935.162 102.363 935.867 105.269 934.361 107.397C925.087 120.513 908.811 133.063 883.291 133.063C855.691 133.063 835.459 118.858 826.604 95.5283L820.445 124.674C820.445 127.322 818.291 129.469 815.633 129.469H756.676C754.018 129.469 751.863 127.322 751.863 124.674V8.39355C751.863 5.74546 754.018 3.59873 756.676 3.59863H793.975C796.632 3.59879 798.788 5.7455 798.788 8.39355V77.9229C798.788 80.183 798.788 81.3134 799.493 82.0156C800.198 82.7174 801.332 82.7178 803.601 82.7178H823.066C822.132 77.6199 821.649 72.2125 821.649 66.5322C821.649 26.6134 846.189 0.000976562 883.409 0.000976562ZM572.317 0C609.197 0 639.095 29.7871 639.096 66.5312C639.096 103.275 609.198 133.062 572.317 133.062C535.438 133.062 505.54 103.275 505.54 66.5312C505.54 29.7874 535.438 0.000367762 572.317 0ZM680.76 3.59668C685.297 3.59668 687.566 3.59661 688.976 5.00098C690.385 6.40545 690.385 8.66625 690.385 13.1865V81.5156C690.385 84.1635 692.54 86.3103 695.197 86.3105C697.855 86.3104 700.01 84.1636 700.01 81.5156V13.1865C700.01 8.66586 700.01 6.40543 701.42 5.00098C702.83 3.59654 705.098 3.59668 709.636 3.59668H737.22C741.796 3.59668 744.084 3.59644 745.496 5.0166C746.908 6.43679 746.887 8.71642 746.845 13.2754L746.199 82.7168C745.94 110.597 723.182 133.062 695.197 133.062C667.213 133.062 644.455 110.597 644.195 82.7168L643.55 13.2744C643.507 8.71613 643.487 6.43673 644.898 5.0166C646.311 3.59655 648.599 3.59668 653.175 3.59668H680.76ZM34.9805 30.5117C37.326 30.5118 39.2324 32.3849 39.2891 34.7168C39.3414 32.4033 41.2325 30.5439 43.5586 30.5439C45.9175 30.5441 47.8301 32.4565 47.8301 34.8154C47.83 36.6701 46.6471 38.2478 44.9951 38.8379C46.3471 39.2634 47.4389 40.2737 47.9756 41.5723C48.5717 40.2144 49.8127 39.2039 51.3115 38.9297C49.3917 38.5473 47.9443 36.8535 47.9443 34.8213C47.9446 32.5077 49.8202 30.6321 52.1338 30.6318C54.4475 30.6318 56.324 32.5076 56.3242 34.8213C56.3242 36.8539 54.8764 38.5487 52.9561 38.9307C54.6765 39.2455 56.0574 40.5293 56.5127 42.1963C57.035 40.3666 58.7185 39.0266 60.7158 39.0264C63.1303 39.0264 65.0878 40.9839 65.0879 43.3984C65.0879 45.2995 63.8742 46.9155 62.1797 47.5176C63.5584 47.9732 64.6536 49.0501 65.1348 50.417C65.7651 48.7309 67.3909 47.5303 69.2969 47.5303C71.6439 47.5304 73.564 49.3512 73.7256 51.6572C73.8891 49.5147 75.6788 47.8271 77.8633 47.8271C80.1554 47.8273 82.0137 49.6854 82.0137 51.9775C82.0136 54.0189 80.5393 55.7146 78.5977 56.0615C80.3718 56.3466 81.802 57.6567 82.2637 59.3652C82.7796 57.5376 84.4585 56.1974 86.4512 56.1973C88.8547 56.1973 90.8037 58.1463 90.8037 60.5498C90.8037 62.4469 89.5889 64.0586 87.8955 64.6543C89.2834 65.1025 90.3882 66.1787 90.877 67.5479C91.5143 65.877 93.1316 64.6895 95.0264 64.6895C97.3473 64.6896 99.2504 66.4713 99.4473 68.7412C99.644 66.6123 101.435 64.9453 103.615 64.9453C105.927 64.9453 107.801 66.82 107.801 69.1318C107.801 71.3134 106.132 73.1041 104.001 73.2988C106.258 73.5018 108.026 75.3975 108.026 77.707C108.026 79.632 106.797 81.2683 105.081 81.8779C106.667 82.4117 107.868 83.7777 108.168 85.457C108.549 83.5952 110.197 82.1943 112.172 82.1943C114.428 82.1944 116.258 84.0246 116.258 86.2812C116.258 88.5377 114.428 90.3671 112.172 90.3672C110.197 90.3672 108.548 88.9655 108.168 87.1025C107.881 88.7091 106.769 90.0278 105.284 90.6064C106.98 91.2756 108.181 92.9285 108.181 94.8623C108.181 96.9656 106.76 98.7352 104.827 99.2695C106.633 99.7948 107.952 101.461 107.952 103.436C107.952 105.832 106.01 107.775 103.613 107.775C101.83 107.775 100.299 106.7 99.6309 105.163C99.1712 106.392 98.2352 107.387 97.0469 107.925C98.5526 108.672 99.5878 110.225 99.5879 112.021C99.5879 114.545 97.5411 116.592 95.0166 116.592C93.2918 116.592 91.7909 115.636 91.0127 114.226C90.479 115.328 89.5592 116.209 88.4277 116.69C89.8539 117.413 90.832 118.892 90.832 120.601C90.832 123.021 88.8702 124.982 86.4502 124.982C84.6416 124.982 83.0892 123.887 82.4199 122.323C81.8221 123.898 80.4307 125.08 78.7334 125.384C80.4636 125.776 81.7558 127.323 81.7559 129.172C81.7559 131.318 80.0158 133.057 77.8701 133.057C75.7246 133.056 73.9854 131.317 73.9854 129.172C73.9854 127.323 75.2774 125.776 77.0078 125.384C75.6213 125.135 74.4388 124.301 73.7266 123.145C73.0597 124.303 71.9535 125.174 70.6348 125.532C72.1132 126.079 73.167 127.501 73.167 129.17C73.167 131.311 71.4312 133.047 69.29 133.047C67.1489 133.047 65.4131 131.311 65.4131 129.17C65.4131 127.502 66.4664 126.079 67.9443 125.532C66.7276 125.202 65.6915 124.435 65.0146 123.408C64.1976 124.654 62.8563 125.523 61.3027 125.7C62.9686 125.98 64.238 127.428 64.2383 129.174C64.2383 131.12 62.6608 132.698 60.7148 132.698C58.7688 132.698 57.1914 131.12 57.1914 129.174C57.1916 127.43 58.4588 125.982 60.123 125.7C58.4563 125.51 57.0328 124.524 56.2402 123.131C55.3901 124.5 53.874 125.413 52.1436 125.413C49.7699 125.413 47.7982 123.697 47.3984 121.438C47.0118 123.204 45.4407 124.525 43.5596 124.525C41.3885 124.525 39.6289 122.765 39.6289 120.594C39.6289 119.13 40.429 117.852 41.6162 117.176C40.4211 116.727 39.4245 115.875 38.79 114.785C37.9336 115.96 36.5482 116.724 34.9834 116.724C32.3822 116.724 30.2734 114.615 30.2734 112.014C30.2735 110.544 30.9463 109.232 32.001 108.368C31.2713 107.927 30.6479 107.329 30.1768 106.62C29.2706 107.695 27.9155 108.38 26.3994 108.38C23.6711 108.38 21.459 106.168 21.459 103.439C21.4591 101.891 22.1717 100.51 23.2861 99.6045C22.5532 99.1232 21.9388 98.4774 21.4951 97.7188C20.6439 98.8094 19.3179 99.5117 17.8271 99.5117C15.2586 99.5115 13.1768 97.429 13.1768 94.8604C13.1768 93.2197 14.0264 91.7781 15.3096 90.9502C13.9728 90.2287 12.9823 88.9499 12.6475 87.4248C12.1722 88.8508 10.8279 89.8798 9.24219 89.8799C7.25944 89.8799 5.65234 88.2718 5.65234 86.2891C5.65254 84.3065 7.25956 82.6992 9.24219 82.6992C10.8258 82.6993 12.1686 83.7253 12.6455 85.1484C12.913 83.9226 13.6043 82.8557 14.5586 82.1084C13.7838 81.5323 13.1659 80.7569 12.7822 79.8574C12.0561 81.0499 10.7443 81.8466 9.24609 81.8467C6.96092 81.8467 5.10862 79.9941 5.1084 77.709C5.1084 75.4237 6.96079 73.5703 9.24609 73.5703C10.744 73.5704 12.056 74.3666 12.7822 75.5586C13.1434 74.7129 13.7129 73.9777 14.4238 73.4141C13.7373 72.8687 13.1851 72.1625 12.8242 71.3516C12.0804 72.5463 10.7561 73.3428 9.24512 73.3428C6.91779 73.3426 5.03125 71.4553 5.03125 69.1279C5.03138 66.8007 6.91787 64.9143 9.24512 64.9141C10.757 64.9141 12.0825 65.7104 12.8262 66.9062C13.2257 66.0104 13.8579 65.2416 14.6475 64.6777C13.7747 64.0072 13.1213 63.0673 12.8105 61.9814C12.243 63.3946 10.8612 64.3926 9.24512 64.3926C7.1233 64.3925 5.40332 62.6726 5.40332 60.5508C5.40342 58.429 7.12336 56.7091 9.24512 56.709C10.8592 56.709 12.2398 57.7048 12.8086 59.1152C13.1928 57.768 14.1046 56.6431 15.3076 55.9805C13.9756 55.1437 13.0889 53.6628 13.0889 51.9736C13.0889 49.5482 14.9146 47.5492 17.2666 47.2754C15.3628 47.0074 13.8975 45.3733 13.8975 43.3955C13.8975 41.2308 15.6527 39.4758 17.8174 39.4756C19.6973 39.4756 21.2675 40.7994 21.6484 42.5654C21.9831 40.6404 23.4585 39.1068 25.3535 38.6885C23.6476 38.229 22.3917 36.6724 22.3916 34.8213C22.3916 32.6089 24.1851 30.8155 26.3975 30.8154C28.6099 30.8154 30.4033 32.6088 30.4033 34.8213C30.4032 36.6728 29.147 38.2295 27.4404 38.6885C28.8484 38.9989 30.0242 39.9252 30.6738 41.1699C31.2384 40.0813 32.204 39.2343 33.375 38.8242C31.7891 38.1873 30.6689 36.6369 30.6689 34.8232C30.669 32.4421 32.5993 30.5117 34.9805 30.5117ZM466.002 3.5957C485.893 3.5957 502.018 19.7214 502.019 39.6123C502.019 47.9736 499.168 55.6689 494.388 61.7812C493.449 62.9819 493.521 64.7134 494.561 65.8281C500.848 72.5698 504.695 81.617 504.695 91.5625C504.695 112.406 487.798 129.469 466.954 129.469H458.55L458.546 129.473H451.366L451.362 129.469H451.36L451.356 129.473H410.216C407.15 129.473 404.665 126.987 404.665 123.921V9.14648C404.665 6.08099 407.15 3.59583 410.216 3.5957H466.002ZM220.062 3.59668C222.72 3.59693 224.875 5.74366 224.875 8.3916V77.9199C224.875 80.1802 224.874 81.3115 225.579 82.0137C226.284 82.7158 227.419 82.7148 229.688 82.7148H246.051C248.709 82.7148 250.863 84.8618 250.863 87.5098V124.672C250.863 127.32 248.709 129.467 246.051 129.467H182.763C180.105 129.467 177.95 127.32 177.95 124.672V8.3916C177.95 5.74355 180.105 3.59675 182.763 3.59668H220.062ZM307.555 0C335.539 0.00021702 358.298 22.4664 358.557 50.3467L359.24 123.858C359.269 126.947 356.763 129.467 353.663 129.467H321.992C317.455 129.467 315.186 129.467 313.776 128.062C312.367 126.658 312.367 124.397 312.367 119.877V97.1797C312.367 95.6469 311.125 94.4094 309.592 94.4092H305.518C303.985 94.4092 302.741 95.6468 302.741 97.1797V119.877C302.741 124.397 302.742 126.658 301.332 128.062C299.922 129.467 297.653 129.467 293.116 129.467H261.445C258.345 129.467 255.839 126.947 255.868 123.858L256.552 50.3467C256.811 22.4663 279.57 2.97478e-05 307.555 0ZM572.318 46.751C561.354 46.7511 552.465 55.6065 552.465 66.5303C552.465 77.4541 561.354 86.3094 572.318 86.3096C583.283 86.3095 592.171 77.4541 592.171 66.5303C592.171 55.6064 583.283 46.751 572.318 46.751ZM452.241 81.8564C451.198 81.8567 450.352 82.7033 450.352 83.7471V94.3311C450.352 95.3747 451.198 96.2205 452.241 96.2207H455.14C459.106 96.2207 462.322 93.0056 462.322 89.0391C462.322 85.0724 459.106 81.8565 455.14 81.8564H452.241ZM882.41 32.3906C874.769 32.391 868.574 38.5633 868.574 46.1768V48.374C868.574 49.4773 869.472 50.3719 870.579 50.3721H894.242C895.349 50.3718 896.248 49.4772 896.248 48.374V46.1768C896.248 38.5632 890.052 32.3908 882.41 32.3906ZM452.241 27.5049C451.198 27.5051 450.352 28.3518 450.352 29.3955V39.9795C450.352 41.0232 451.198 41.8699 452.241 41.8701H455.14C459.106 41.8701 462.322 38.6542 462.322 34.6875C462.322 30.7209 459.106 27.5049 455.14 27.5049H452.241ZM307.555 44.3545C304.897 44.3545 302.741 46.5014 302.741 49.1494V66.542C302.741 67.8659 303.819 68.9402 305.147 68.9404H309.961C311.29 68.9402 312.367 67.866 312.367 66.542V49.1494C312.367 46.5015 310.212 44.3547 307.555 44.3545Z" fill="currentColor"/>
-          <g fill="currentColor"><circle cx="86.4414" cy="129.175" r="3.59"/><circle cx="52.126" cy="129.177" r="2.69"/><circle cx="95.0283" cy="120.6" r="3.846"/><circle cx="103.604" cy="120.6" r="3.446"/><circle cx="34.9785" cy="120.593" r="2.369"/><circle cx="103.604" cy="112.022" r="3.866"/><circle cx="112.175" cy="112.013" r="3.429"/><circle cx="26.3945" cy="112.015" r="3.071"/><circle cx="112.176" cy="103.446" r="3.655"/><circle cx="120.757" cy="103.442" r="3.3"/><circle cx="17.8193" cy="103.439" r="3.13"/><circle cx="112.177" cy="94.8604" r="3.912"/><circle cx="120.757" cy="94.8604" r="3.361"/><circle cx="9.24414" cy="94.8594" r="2.622"/><circle cx="120.759" cy="86.2812" r="3.432"/><circle cx="129.342" cy="86.2832" r="3.181"/><circle cx="572.318" cy="66.5303" r="19.853" fill="none"/><circle cx="112.185" cy="77.709" r="3.997"/><circle cx="120.755" cy="77.7061" r="3.469"/><circle cx="129.337" cy="77.7051" r="3.006"/><circle cx="0.670898" cy="69.1299" r="0.671"/><circle cx="112.182" cy="69.1348" r="3.823"/><circle cx="120.755" cy="69.1299" r="3.283"/><circle cx="129.333" cy="69.127" r="2.901"/><circle cx="0.664062" cy="60.5498" r="0.324"/><circle cx="95.0342" cy="60.5518" r="4.061"/><circle cx="103.604" cy="60.5508" r="3.741"/><circle cx="112.172" cy="60.5547" r="3.341"/><circle cx="120.751" cy="60.5537" r="2.921"/><circle cx="129.328" cy="60.5498" r="2.662"/><circle cx="86.4375" cy="51.9707" r="3.686"/><circle cx="95.0186" cy="51.9756" r="3.222"/><circle cx="9.24414" cy="51.9736" r="3.16"/><circle cx="103.611" cy="51.9766" r="2.94"/><circle cx="112.178" cy="51.9766" r="2.709"/><circle cx="120.75" cy="51.9697" r="2.375"/><circle cx="129.334" cy="51.9736" r="2.265"/><circle cx="69.2881" cy="43.3965" r="4.067"/><circle cx="77.873" cy="43.3896" r="3.5"/><circle cx="86.4424" cy="43.3936" r="2.876"/><circle cx="95.0303" cy="43.3965" r="2.318"/><circle cx="9.23926" cy="43.3965" r="2.197"/><circle cx="103.601" cy="43.3945" r="1.975"/><circle cx="112.181" cy="43.3896" r="1.82"/><circle cx="120.751" cy="43.3945" r="1.694"/><circle cx="129.341" cy="43.3906" r="0.586"/><circle cx="60.7129" cy="34.8223" r="4.011"/><circle cx="69.2891" cy="34.8164" r="3.526"/><circle cx="77.8613" cy="34.8174" r="2.843"/><circle cx="17.8223" cy="34.8184" r="2.745"/><circle cx="86.4482" cy="34.8232" r="2.227"/><circle cx="95.0225" cy="34.8213" r="1.502"/><circle cx="103.598" cy="34.8193" r="1.102"/><circle cx="120.767" cy="34.8154" r="1.027"/><circle cx="9.23828" cy="34.8193" r="0.999"/><circle cx="112.188" cy="34.8184" r="0.933"/><circle cx="43.5645" cy="26.2354" r="3.718"/><circle cx="52.127" cy="26.2354" r="3.717"/><circle cx="60.7061" cy="26.2451" r="3.561"/><circle cx="34.9717" cy="26.2373" r="3.535"/><circle cx="69.293" cy="26.2373" r="3.01"/><circle cx="26.4023" cy="26.2461" r="2.676"/><circle cx="77.8701" cy="26.2402" r="2.416"/><circle cx="86.4395" cy="26.2402" r="1.723"/><circle cx="17.8203" cy="26.2402" r="1.291"/><circle cx="95.0146" cy="26.2412" r="1.022"/><circle cx="103.604" cy="26.2422" r="0.604"/><circle cx="112.176" cy="26.2422" r="0.417"/><circle cx="52.1348" cy="17.6641" r="3.158"/><circle cx="60.7188" cy="17.6621" r="3.085"/><circle cx="43.5576" cy="17.6621" r="2.967"/><circle cx="69.2842" cy="17.6592" r="2.612"/><circle cx="77.8701" cy="17.6641" r="2.153"/><circle cx="34.9766" cy="17.6611" r="2.111"/><circle cx="86.4463" cy="17.667" r="1.483"/><circle cx="26.4062" cy="17.6611" r="1.018"/><circle cx="95.0273" cy="17.6582" r="0.692"/><circle cx="103.596" cy="17.6572" r="0.324"/><circle cx="60.707" cy="9.08887" r="2.376"/><circle cx="69.2852" cy="9.08789" r="2.241"/><circle cx="52.1328" cy="9.08496" r="2.03"/><circle cx="77.873" cy="9.08691" r="1.806"/><circle cx="43.5508" cy="9.08789" r="1.283"/><circle cx="86.4492" cy="9.0791" r="1.267"/><circle cx="95.0264" cy="9.08105" r="0.551"/><circle cx="34.9736" cy="9.08496" r="0.453"/><circle cx="60.7061" cy="0.324219" r="0.324"/><circle cx="69.2861" cy="0.324219" r="0.324"/></g>
+        <svg class="brand-icon" viewBox="0 0 382 382" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <g id="brand-icon-rects" fill="currentColor"><rect x="173.898" width="1.857" height="1.857" rx="0.93"/><rect x="198.488" width="1.857" height="1.857" rx="0.93"/><rect x="99.756" y="24.742" width="2.601" height="2.601" rx="1.30"/><rect x="121.969" y="22.367" width="7.355" height="7.355" rx="3.68"/><rect x="144.416" y="20.219" width="11.641" height="11.641" rx="5.82"/><rect x="168.020" y="19.234" width="13.615" height="13.615" rx="6.81"/><rect x="192.992" y="19.617" width="12.848" height="12.848" rx="6.42"/><rect x="218.828" y="20.867" width="10.352" height="10.352" rx="5.18"/><rect x="244.963" y="22.406" width="7.267" height="7.267" rx="3.63"/><rect x="271.609" y="24.461" width="3.155" height="3.155" rx="1.58"/><rect x="73.549" y="47.711" width="5.833" height="5.833" rx="2.92"/><rect x="95.002" y="44.578" width="12.107" height="12.107" rx="6.05"/><rect x="117.139" y="42.125" width="17.013" height="17.013" rx="8.51"/><rect x="141.184" y="41.578" width="18.104" height="18.104" rx="9.05"/><rect x="165.984" y="41.789" width="17.683" height="17.683" rx="8.84"/><rect x="191.928" y="43.141" width="14.978" height="14.978" rx="7.49"/><rect x="217.834" y="44.461" width="12.343" height="12.343" rx="6.17"/><rect x="244.344" y="46.383" width="8.502" height="8.502" rx="4.25"/><rect x="271.201" y="48.648" width="3.967" height="3.967" rx="1.98"/><rect x="296.844" y="49.703" width="1.859" height="1.859" rx="0.93"/><rect x="48.174" y="71.516" width="7.402" height="7.402" rx="3.70"/><rect x="68.795" y="67.555" width="15.342" height="15.342" rx="7.67"/><rect x="90.922" y="65.086" width="20.270" height="20.270" rx="10.14"/><rect x="114.986" y="64.562" width="21.315" height="21.315" rx="10.66"/><rect x="139.576" y="64.562" width="21.313" height="21.313" rx="10.66"/><rect x="164.613" y="65.008" width="20.423" height="20.423" rx="10.21"/><rect x="190.785" y="66.594" width="17.257" height="17.257" rx="8.63"/><rect x="217.078" y="68.297" width="13.853" height="13.853" rx="6.93"/><rect x="243.652" y="70.281" width="9.882" height="9.882" rx="4.94"/><rect x="270.258" y="72.297" width="5.854" height="5.854" rx="2.93"/><rect x="296.045" y="73.492" width="3.458" height="3.458" rx="1.73"/><rect x="321.174" y="74.031" width="2.386" height="2.386" rx="1.19"/><rect x="24.420" y="96.945" width="5.731" height="5.731" rx="2.87"/><rect x="44.004" y="91.945" width="15.739" height="15.739" rx="7.87"/><rect x="64.982" y="88.328" width="22.969" height="22.969" rx="11.48"/><rect x="88.693" y="87.453" width="24.721" height="24.721" rx="12.36"/><rect x="113.400" y="87.562" width="24.490" height="24.490" rx="12.25"/><rect x="138.225" y="87.805" width="24.022" height="24.022" rx="12.01"/><rect x="163.328" y="88.312" width="22.997" height="22.997" rx="11.50"/><rect x="189.307" y="89.703" width="20.216" height="20.216" rx="10.11"/><rect x="215.855" y="91.656" width="16.299" height="16.299" rx="8.15"/><rect x="242.227" y="93.438" width="12.742" height="12.742" rx="6.37"/><rect x="268.879" y="95.508" width="8.610" height="8.610" rx="4.31"/><rect x="294.617" y="96.648" width="6.315" height="6.315" rx="3.16"/><rect x="319.693" y="97.141" width="5.344" height="5.344" rx="2.67"/><rect x="344.012" y="96.867" width="5.887" height="5.887" rx="2.94"/><rect x="20.984" y="118.102" width="12.601" height="12.601" rx="6.30"/><rect x="40.637" y="113.164" width="22.475" height="22.475" rx="11.24"/><rect x="62.643" y="110.578" width="27.646" height="27.646" rx="13.82"/><rect x="87.168" y="110.516" width="27.771" height="27.771" rx="13.89"/><rect x="111.949" y="110.703" width="27.392" height="27.392" rx="13.70"/><rect x="137.221" y="111.391" width="26.030" height="26.030" rx="13.01"/><rect x="162.293" y="111.867" width="25.067" height="25.067" rx="12.53"/><rect x="187.752" y="112.734" width="23.325" height="23.325" rx="11.66"/><rect x="213.971" y="114.367" width="20.068" height="20.068" rx="10.03"/><rect x="240.350" y="116.156" width="16.490" height="16.490" rx="8.25"/><rect x="266.539" y="117.758" width="13.290" height="13.290" rx="6.64"/><rect x="292.111" y="118.742" width="11.323" height="11.323" rx="5.66"/><rect x="317.148" y="119.188" width="10.435" height="10.435" rx="5.22"/><rect x="342.100" y="119.539" width="9.712" height="9.712" rx="4.86"/><rect x="369.869" y="122.727" width="3.353" height="3.353" rx="1.68"/><rect x="18.234" y="139.945" width="18.099" height="18.099" rx="9.05"/><rect x="38.314" y="135.430" width="27.122" height="27.122" rx="13.56"/><rect x="61.389" y="133.914" width="30.156" height="30.156" rx="15.08"/><rect x="85.951" y="133.883" width="30.211" height="30.211" rx="15.11"/><rect x="110.904" y="134.250" width="29.482" height="29.482" rx="14.74"/><rect x="136.072" y="134.828" width="28.325" height="28.325" rx="14.16"/><rect x="161.365" y="135.531" width="26.920" height="26.920" rx="13.46"/><rect x="186.682" y="136.258" width="25.467" height="25.467" rx="12.73"/><rect x="212.107" y="137.094" width="23.798" height="23.798" rx="11.90"/><rect x="238.027" y="138.422" width="21.135" height="21.135" rx="10.57"/><rect x="263.949" y="139.750" width="18.475" height="18.475" rx="9.24"/><rect x="289.348" y="140.562" width="16.854" height="16.854" rx="8.43"/><rect x="314.600" y="141.227" width="15.534" height="15.534" rx="7.77"/><rect x="340.148" y="142.180" width="13.616" height="13.616" rx="6.81"/><rect x="365.051" y="142.500" width="12.988" height="12.988" rx="6.49"/><rect x="1.766" y="172.648" width="1.857" height="1.857" rx="0.93"/><rect x="16.271" y="162.562" width="22.029" height="22.029" rx="11.01"/><rect x="36.943" y="158.648" width="29.863" height="29.863" rx="14.93"/><rect x="60.396" y="157.516" width="32.135" height="32.135" rx="16.07"/><rect x="84.855" y="157.383" width="32.399" height="32.399" rx="16.20"/><rect x="109.795" y="157.734" width="31.699" height="31.699" rx="15.85"/><rect x="134.984" y="158.336" width="30.498" height="30.498" rx="15.25"/><rect x="160.322" y="159.078" width="29.010" height="29.010" rx="14.51"/><rect x="185.744" y="159.906" width="27.343" height="27.343" rx="13.67"/><rect x="210.953" y="160.531" width="26.101" height="26.101" rx="13.05"/><rect x="236.119" y="161.102" width="24.953" height="24.953" rx="12.48"/><rect x="261.543" y="161.938" width="23.285" height="23.285" rx="11.64"/><rect x="287.051" y="162.852" width="21.447" height="21.447" rx="10.72"/><rect x="312.789" y="164.000" width="19.154" height="19.154" rx="9.58"/><rect x="338.584" y="165.211" width="16.747" height="16.747" rx="8.37"/><rect x="363.914" y="165.945" width="15.264" height="15.264" rx="7.63"/><rect x="0.773" y="196.250" width="3.843" height="3.843" rx="1.92"/><rect x="15.203" y="186.086" width="24.164" height="24.164" rx="12.08"/><rect x="36.197" y="182.492" width="31.357" height="31.357" rx="15.68"/><rect x="59.691" y="181.398" width="33.550" height="33.550" rx="16.78"/><rect x="84.221" y="181.336" width="33.671" height="33.671" rx="16.84"/><rect x="109.023" y="181.547" width="33.243" height="33.243" rx="16.62"/><rect x="134.211" y="182.148" width="32.046" height="32.046" rx="16.02"/><rect x="159.580" y="182.922" width="30.491" height="30.491" rx="15.25"/><rect x="184.748" y="183.508" width="29.334" height="29.334" rx="14.67"/><rect x="209.984" y="184.148" width="28.043" height="28.043" rx="14.02"/><rect x="235.121" y="184.695" width="26.952" height="26.952" rx="13.48"/><rect x="260.459" y="185.445" width="25.456" height="25.456" rx="12.73"/><rect x="285.775" y="186.172" width="24.001" height="24.001" rx="12.00"/><rect x="311.404" y="187.211" width="21.922" height="21.922" rx="10.96"/><rect x="337.543" y="188.766" width="18.821" height="18.821" rx="9.41"/><rect x="363.229" y="189.852" width="16.634" height="16.634" rx="8.32"/><rect x="15.422" y="210.898" width="23.726" height="23.726" rx="11.86"/><rect x="36.168" y="207.055" width="31.416" height="31.416" rx="15.71"/><rect x="59.451" y="205.742" width="34.029" height="34.029" rx="17.01"/><rect x="83.896" y="205.602" width="34.321" height="34.321" rx="17.16"/><rect x="108.547" y="205.664" width="34.194" height="34.194" rx="17.10"/><rect x="133.510" y="206.039" width="33.450" height="33.450" rx="16.73"/><rect x="158.666" y="206.602" width="32.320" height="32.320" rx="16.16"/><rect x="183.908" y="207.258" width="31.008" height="31.008" rx="15.50"/><rect x="209.145" y="207.898" width="29.720" height="29.720" rx="14.86"/><rect x="234.283" y="208.453" width="28.624" height="28.624" rx="14.31"/><rect x="259.607" y="209.180" width="27.155" height="27.155" rx="13.58"/><rect x="285.084" y="210.070" width="25.382" height="25.382" rx="12.69"/><rect x="310.906" y="211.297" width="22.918" height="22.918" rx="11.46"/><rect x="337.012" y="212.820" width="19.887" height="19.887" rx="9.94"/><rect x="362.930" y="214.148" width="17.234" height="17.234" rx="8.62"/><rect x="16.992" y="237.062" width="20.584" height="20.584" rx="10.29"/><rect x="36.682" y="232.156" width="30.389" height="30.389" rx="15.19"/><rect x="59.535" y="230.422" width="33.862" height="33.862" rx="16.93"/><rect x="83.771" y="230.062" width="34.568" height="34.568" rx="17.28"/><rect x="108.375" y="230.078" width="34.544" height="34.544" rx="17.27"/><rect x="133.076" y="230.195" width="34.318" height="34.318" rx="17.16"/><rect x="157.977" y="230.500" width="33.699" height="33.699" rx="16.85"/><rect x="183.129" y="231.062" width="32.573" height="32.573" rx="16.29"/><rect x="208.326" y="231.672" width="31.360" height="31.360" rx="15.68"/><rect x="233.545" y="232.297" width="30.100" height="30.100" rx="15.05"/><rect x="258.807" y="232.969" width="28.760" height="28.760" rx="14.38"/><rect x="284.461" y="234.031" width="26.629" height="26.629" rx="13.31"/><rect x="310.650" y="235.633" width="23.429" height="23.429" rx="11.71"/><rect x="337.113" y="237.508" width="19.681" height="19.681" rx="9.84"/><rect x="362.426" y="238.234" width="18.237" height="18.237" rx="9.12"/><rect x="19.766" y="264.422" width="15.036" height="15.036" rx="7.52"/><rect x="38.541" y="258.609" width="26.668" height="26.668" rx="13.33"/><rect x="60.197" y="255.672" width="32.533" height="32.533" rx="16.27"/><rect x="83.938" y="254.820" width="34.239" height="34.239" rx="17.12"/><rect x="108.307" y="254.602" width="34.680" height="34.680" rx="17.34"/><rect x="132.938" y="254.641" width="34.596" height="34.596" rx="17.30"/><rect x="157.750" y="254.867" width="34.153" height="34.153" rx="17.08"/><rect x="182.721" y="255.250" width="33.387" height="33.387" rx="16.69"/><rect x="207.721" y="255.656" width="32.572" height="32.572" rx="16.29"/><rect x="232.990" y="256.336" width="31.212" height="31.212" rx="15.61"/><rect x="258.537" y="257.289" width="29.296" height="29.296" rx="14.65"/><rect x="284.664" y="258.828" width="26.226" height="26.226" rx="13.11"/><rect x="311.150" y="260.727" width="22.430" height="22.430" rx="11.21"/><rect x="337.316" y="262.305" width="19.273" height="19.273" rx="9.64"/><rect x="42.902" y="287.555" width="17.945" height="17.945" rx="8.97"/><rect x="62.303" y="282.367" width="28.324" height="28.324" rx="14.16"/><rect x="84.549" y="280.023" width="33.013" height="33.013" rx="16.51"/><rect x="108.646" y="279.531" width="33.994" height="33.994" rx="17.00"/><rect x="133.184" y="279.477" width="34.101" height="34.101" rx="17.05"/><rect x="157.805" y="279.508" width="34.040" height="34.040" rx="17.02"/><rect x="182.697" y="279.812" width="33.436" height="33.436" rx="16.72"/><rect x="207.814" y="280.344" width="32.378" height="32.378" rx="16.19"/><rect x="233.320" y="281.258" width="30.550" height="30.550" rx="15.28"/><rect x="259.070" y="282.414" width="28.229" height="28.229" rx="14.11"/><rect x="285.334" y="284.086" width="24.881" height="24.881" rx="12.44"/><rect x="311.885" y="286.055" width="20.960" height="20.960" rx="10.48"/><rect x="337.494" y="287.070" width="18.920" height="18.920" rx="9.46"/><rect x="67.658" y="312.312" width="17.611" height="17.611" rx="8.81"/><rect x="87.553" y="307.617" width="27.004" height="27.004" rx="13.50"/><rect x="109.857" y="305.336" width="31.575" height="31.575" rx="15.79"/><rect x="133.768" y="304.656" width="32.934" height="32.934" rx="16.47"/><rect x="158.350" y="304.648" width="32.953" height="32.953" rx="16.48"/><rect x="183.156" y="304.859" width="32.522" height="32.522" rx="16.26"/><rect x="208.455" y="305.570" width="31.100" height="31.100" rx="15.55"/><rect x="234.037" y="306.562" width="29.119" height="29.119" rx="14.56"/><rect x="260.080" y="308.016" width="26.208" height="26.208" rx="13.10"/><rect x="286.695" y="310.039" width="22.161" height="22.161" rx="11.08"/><rect x="312.533" y="311.289" width="19.663" height="19.663" rx="9.83"/><rect x="94.262" y="338.914" width="13.584" height="13.584" rx="6.79"/><rect x="114.373" y="334.438" width="22.542" height="22.542" rx="11.27"/><rect x="136.416" y="331.891" width="27.637" height="27.637" rx="13.82"/><rect x="160.080" y="330.969" width="29.491" height="29.491" rx="14.75"/><rect x="184.742" y="331.039" width="29.345" height="29.345" rx="14.67"/><rect x="210.059" y="331.766" width="27.892" height="27.892" rx="13.95"/><rect x="236.031" y="333.148" width="25.125" height="25.125" rx="12.56"/><rect x="262.162" y="334.688" width="22.047" height="22.047" rx="11.02"/><rect x="287.896" y="335.836" width="19.755" height="19.755" rx="9.88"/><rect x="142.520" y="362.586" width="15.435" height="15.435" rx="7.72"/><rect x="164.725" y="360.203" width="20.203" height="20.203" rx="10.10"/><rect x="188.303" y="359.188" width="22.229" height="22.229" rx="11.11"/><rect x="212.865" y="359.164" width="22.276" height="22.276" rx="11.14"/><rect x="238.307" y="360.016" width="20.574" height="20.574" rx="10.29"/></g>
         </svg>
+        <span class="brand-name">LA BOULE</span>
         <p class="subtitle mono">dot machine</p>
       </header>
       <button id="reset" class="text-btn">reset values</button>
@@ -446,24 +646,46 @@
         </button>
         <div id="ctrl-advanced" class="adv-body" hidden></div>
       </section>
+      </div>
 
-      <section class="section actions">
-        <button id="copy-btn" class="btn">Copy</button>
-        <div id="dl-wrap" class="dl">
-          <button id="dl-btn" class="btn primary">Download</button>
-          <div id="dl-menu" class="dl-menu" hidden></div>
+      <div class="rail-foot">
+        <div id="format-chips" class="format-chips" hidden></div>
+        <div class="actions-row">
+          <button id="copy-btn" class="btn" type="button">Copy <span class="fmt-hint mono">PNG</span></button>
+          <button id="dl-btn" class="btn primary" type="button">Download <span class="fmt-hint mono">PNG</span></button>
         </div>
         <p id="export-info" class="hint mono"></p>
         <p class="credit mono">made with <span class="heart">♥</span> by <a href="https://soyakil.fr/" target="_blank" rel="noopener noreferrer">Achille Ernoult&nbsp;🗿</a></p>
-      </section>
+      </div>
     </aside>
     <section id="stage">
       <div id="empty">
+        <svg class="empty-icon" viewBox="0 0 382 382" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <use href="#brand-icon-rects" />
+        </svg>
+        <h2 class="empty-title">Turn anything into halftone</h2>
+        <p class="empty-sub">Drop a file or pick one to get started</p>
         <button id="empty-btn" class="empty-btn" type="button">Add a file</button>
-        <p class="empty-hint mono">or drop one here</p>
+        <p class="empty-hint">or drop anywhere</p>
+        <div class="empty-formats" aria-hidden="true">
+          <span>JPG</span><span>PNG</span><span>WEBP</span><span>MP4</span><span>WEBM</span><span>MOV</span>
+        </div>
       </div>
-      <canvas id="canvas" hidden></canvas>
+      <div class="canvas-wrap" hidden>
+        <canvas id="canvas"></canvas>
+      </div>
       <input id="file" type="file" accept="image/*,video/*" hidden />
+
+      <div id="stage-chrome" hidden>
+        <button class="chrome-btn replace-btn" type="button">Replace</button>
+        <span class="chrome-divider"></span>
+        <div class="chrome-zoom">
+          <button class="chrome-btn icon zoom-out" type="button" aria-label="Zoom out">−</button>
+          <span class="zoom-val mono" title="Click to reset">100%</span>
+          <button class="chrome-btn icon zoom-in" type="button" aria-label="Zoom in">+</button>
+        </div>
+      </div>
+
       <div id="progress" hidden>
         <span class="mono progress-label">recording…</span>
         <button id="cancel-rec" class="btn">cancel</button>
@@ -489,6 +711,11 @@
       // Advanced
       minDotSize: 0,       // 0 = no minimum (light areas have no dots)
       maxDotSize: 0,       // 0 = no max cap (limited only by cellSize / dotScale)
+      // Export format (per source kind)
+      imgFormat: 'png',    // 'png' | 'jpeg' | 'svg'
+      vidFormat: 'webm',   // 'webm' | 'mp4' | 'gif'
+      // Preview zoom
+      zoom: 1,
     };
 
     const listeners = new Set();
@@ -574,10 +801,26 @@
       startVideoLoop();
     }
 
+    const canvasWrap = canvas.parentElement;
+    const stageChrome = document.getElementById('stage-chrome');
+    const formatChipsEl = document.getElementById('format-chips');
+
     function onSourceReady() {
       empty.hidden = true;
-      canvas.hidden = false;
+      canvasWrap.hidden = false;
+      stageChrome.hidden = false;
+      formatChipsEl.hidden = false;
+      setState({ zoom: 1 });
+      buildFormatChips();
+      updateActionButtons();
       render();
+    }
+
+    function onSourceCleared() {
+      empty.hidden = false;
+      canvasWrap.hidden = true;
+      stageChrome.hidden = true;
+      formatChipsEl.hidden = true;
     }
 
     function startVideoLoop() {
@@ -709,42 +952,68 @@
     }
     onState(updateExportInfo);
 
-    dlBtn.addEventListener('click', () => {
-      if (!state.source) return;
-      buildDlMenu();
-      dlMenu.hidden = !dlMenu.hidden;
-    });
-    document.addEventListener('click', e => {
-      if (!e.target.closest('#dl-wrap')) dlMenu.hidden = true;
-    });
-
-    function buildDlMenu() {
-      dlMenu.innerHTML = '';
+    function buildFormatChips() {
+      formatChipsEl.innerHTML = '';
       const transOn = state.dotTransparent || state.bgTransparent;
-      if (state.source.kind === 'image') {
-        addOption('PNG', () => exportImage('png'));
-        addOption('JPEG', () => exportImage('jpeg'), transOn);
-        addOption('SVG', () => exportImage('svg'));
-      } else {
-        const canRecord = state.source.durationOk;
-        VID_FORMATS.forEach(f => {
-          const isBitmapVideo = f.label !== 'GIF';
-          const disabled = (isBitmapVideo && transOn) || !canRecord;
-          const tooltip = !canRecord ? "duration unknown — can't export" : '';
-          addOption(f.label, () => exportVideo(f), disabled, tooltip);
+      const isImg = state.source?.kind === 'image';
+      const list = isImg
+        ? [
+            { id: 'png',  label: 'PNG' },
+            { id: 'jpeg', label: 'JPEG', disabled: transOn, title: transOn ? 'no alpha — disabled' : '' },
+            { id: 'svg',  label: 'SVG' },
+          ]
+        : VID_FORMATS.map(f => ({
+            id: f.id,
+            label: f.label,
+            disabled: (f.label !== 'GIF' && transOn) || !state.source?.durationOk,
+            title: !state.source?.durationOk ? "duration unknown — can't export" : (transOn && f.label !== 'GIF' ? 'no alpha — disabled' : ''),
+          }));
+      const stateKey = isImg ? 'imgFormat' : 'vidFormat';
+      list.forEach(f => {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'format-chip' + (state[stateKey] === f.id ? ' active' : '');
+        b.textContent = f.label;
+        if (f.disabled) b.disabled = true;
+        if (f.title) b.title = f.title;
+        b.addEventListener('click', () => {
+          setState({ [stateKey]: f.id });
+          buildFormatChips();
+          updateActionButtons();
         });
+        formatChipsEl.appendChild(b);
+      });
+      // If currently selected format is now disabled, fall back to first enabled
+      const selected = list.find(f => f.id === state[stateKey]);
+      if (!selected || selected.disabled) {
+        const fallback = list.find(f => !f.disabled);
+        if (fallback && fallback.id !== state[stateKey]) {
+          setState({ [stateKey]: fallback.id });
+          buildFormatChips();
+          updateActionButtons();
+        }
       }
     }
 
-    function addOption(label, fn, disabled = false, tooltip = '') {
-      const b = document.createElement('button');
-      b.textContent = label;
-      b.type = 'button';
-      if (disabled) b.disabled = true;
-      if (tooltip) b.title = tooltip;
-      b.addEventListener('click', () => { dlMenu.hidden = true; fn(); });
-      dlMenu.appendChild(b);
+    function updateActionButtons() {
+      const isImg = state.source?.kind === 'image';
+      const fmtId = isImg ? state.imgFormat : state.vidFormat;
+      const fmtLabel = (isImg ? fmtId : fmtId).toUpperCase();
+      copyBtn.querySelector('.fmt-hint').textContent = isImg ? fmtLabel : 'PNG';
+      dlBtn.querySelector('.fmt-hint').textContent = fmtLabel;
+      // Hide Copy for video (no useful clipboard action for video formats)
+      copyBtn.style.display = isImg ? '' : 'none';
     }
+
+    dlBtn.addEventListener('click', () => {
+      if (!state.source) return;
+      if (state.source.kind === 'image') {
+        exportImage(state.imgFormat);
+      } else {
+        const fmt = VID_FORMATS.find(f => f.id === state.vidFormat);
+        if (fmt) exportVideo(fmt);
+      }
+    });
 
     async function exportImage(fmt) {
       if (fmt === 'png' || fmt === 'jpeg') {
@@ -840,15 +1109,15 @@
       const out = [];
       if (typeof MediaRecorder !== 'undefined') {
         if (MediaRecorder.isTypeSupported('video/webm;codecs=vp9')) {
-          out.push({ label: 'WebM', mime: 'video/webm;codecs=vp9', ext: 'webm' });
+          out.push({ id: 'webm', label: 'WebM', mime: 'video/webm;codecs=vp9', ext: 'webm' });
         } else if (MediaRecorder.isTypeSupported('video/webm')) {
-          out.push({ label: 'WebM', mime: 'video/webm', ext: 'webm' });
+          out.push({ id: 'webm', label: 'WebM', mime: 'video/webm', ext: 'webm' });
         }
         if (MediaRecorder.isTypeSupported('video/mp4;codecs=avc1')) {
-          out.push({ label: 'MP4', mime: 'video/mp4;codecs=avc1', ext: 'mp4' });
+          out.push({ id: 'mp4', label: 'MP4', mime: 'video/mp4;codecs=avc1', ext: 'mp4' });
         }
       }
-      out.push({ label: 'GIF', mime: 'image/gif', ext: 'gif' });
+      out.push({ id: 'gif', label: 'GIF', mime: 'image/gif', ext: 'gif' });
       return out;
     })();
 
@@ -859,8 +1128,14 @@
     function showProgress(text) {
       progressLabel.textContent = text;
       progressEl.hidden = false;
+      const sc = document.getElementById('stage-chrome');
+      if (sc) sc.hidden = true;
     }
-    function hideProgress() { progressEl.hidden = true; }
+    function hideProgress() {
+      progressEl.hidden = true;
+      const sc = document.getElementById('stage-chrome');
+      if (sc && state.source) sc.hidden = false;
+    }
 
     let activeRecorder = null;
 
@@ -995,7 +1270,7 @@
       row.className = 'row';
       row.innerHTML = `
         <label>${label}</label>
-        <span class="val mono"></span>
+        <span class="val mono" tabindex="0" role="button" title="Click to edit"></span>
         <input type="range" min="${min}" max="${max}" step="${step}" value="${state[key]}" />
       `;
       const valEl = row.querySelector('.val');
@@ -1012,6 +1287,36 @@
         valEl.textContent = format(state[key]);
         updateProgress();
       });
+
+      // Click value to edit with keyboard
+      const startEdit = () => {
+        if (row.querySelector('.val-edit')) return;
+        const editor = document.createElement('input');
+        editor.type = 'number';
+        editor.min = min; editor.max = max; editor.step = step;
+        editor.value = state[key];
+        editor.className = 'val-edit mono';
+        valEl.replaceWith(editor);
+        editor.focus();
+        editor.select();
+        const commit = () => {
+          const raw = parseFloat(editor.value);
+          const v = Number.isFinite(raw) ? Math.max(min, Math.min(max, raw)) : state[key];
+          setState({ [key]: v });
+          if (editor.isConnected) editor.replaceWith(valEl);
+        };
+        const cancel = () => { if (editor.isConnected) editor.replaceWith(valEl); };
+        editor.addEventListener('blur', commit);
+        editor.addEventListener('keydown', e => {
+          if (e.key === 'Enter') { e.preventDefault(); commit(); }
+          else if (e.key === 'Escape') { e.preventDefault(); cancel(); }
+        });
+      };
+      valEl.addEventListener('click', startEdit);
+      valEl.addEventListener('keydown', e => {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); startEdit(); }
+      });
+
       container.appendChild(row);
     }
 
@@ -1125,7 +1430,49 @@
       dotColor: '#1C0802', bgColor: '#FFFFFF', dotTransparent: false, bgTransparent: false,
       minDotSize: 0, maxDotSize: 0,
     };
-    document.getElementById('reset').addEventListener('click', () => setState({ ...DEFAULTS }));
+    document.getElementById('reset').addEventListener('click', () => setState({ ...DEFAULTS, zoom: state.zoom }));
+
+    // Stage chrome: replace + zoom
+    document.querySelector('#stage-chrome .replace-btn').addEventListener('click', () => fileInput.click());
+
+    const ZOOM_STEPS = [0.5, 0.75, 1, 1.25, 1.5, 2, 3, 4];
+    function clampZoom(z) { return Math.max(0.5, Math.min(4, z)); }
+    function nextZoom(dir) {
+      const z = state.zoom;
+      if (dir > 0) return ZOOM_STEPS.find(s => s > z + 0.001) ?? z;
+      const lower = [...ZOOM_STEPS].reverse().find(s => s < z - 0.001);
+      return lower ?? z;
+    }
+    document.querySelector('#stage-chrome .zoom-in').addEventListener('click', () => setState({ zoom: nextZoom(+1) }));
+    document.querySelector('#stage-chrome .zoom-out').addEventListener('click', () => setState({ zoom: nextZoom(-1) }));
+    document.querySelector('#stage-chrome .zoom-val').addEventListener('click', () => setState({ zoom: 1 }));
+
+    // Mouse wheel zoom over the canvas
+    canvasWrap.addEventListener('wheel', e => {
+      if (!state.source) return;
+      e.preventDefault();
+      const factor = e.deltaY < 0 ? 1.1 : 1 / 1.1;
+      setState({ zoom: clampZoom(state.zoom * factor) });
+    }, { passive: false });
+
+    // Apply zoom to canvas + update chrome label
+    const zoomValEl = document.querySelector('#stage-chrome .zoom-val');
+    onState(() => {
+      canvas.style.setProperty('--zoom', state.zoom);
+      canvas.classList.toggle('zoomed', state.zoom > 1.001);
+      if (zoomValEl) zoomValEl.textContent = `${Math.round(state.zoom * 100)}%`;
+    });
+
+    // Rebuild chips when transparency toggles disable/enable formats
+    let lastTransOn = false;
+    onState(() => {
+      const trans = state.dotTransparent || state.bgTransparent;
+      if (trans !== lastTransOn && state.source) {
+        lastTransOn = trans;
+        buildFormatChips();
+        updateActionButtons();
+      }
+    });
 
     // Advanced section
     const advBody = document.getElementById('ctrl-advanced');
