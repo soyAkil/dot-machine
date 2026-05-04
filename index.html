@@ -7,7 +7,67 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet" />
-  <style>/* SECTION: base */</style>
+  <style>
+    :root {
+      --core: #CEADFF;
+      --analog: #F6B9A2;
+      --rush: #F2ADFF;
+      --keyframe: #ADE7FF;
+      --canvas: #FFF7FA;
+      --gaffer: #1C0802;
+
+      --bg: var(--canvas);
+      --fg: var(--gaffer);
+      --hairline: rgba(28, 8, 2, 0.08);
+    }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; height: 100%; }
+
+    body {
+      background: var(--bg);
+      color: var(--fg);
+      font-family: 'Geist', system-ui, sans-serif;
+      font-size: 13px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    #app {
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      height: 100vh;
+      min-width: 720px;
+    }
+
+    #rail {
+      border-right: 1px solid var(--hairline);
+      padding: 24px 20px;
+      overflow-y: auto;
+    }
+
+    #stage {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 32px;
+      overflow: hidden;
+    }
+
+    #empty {
+      font-family: 'Geist Mono', ui-monospace, monospace;
+      color: rgba(28, 8, 2, 0.4);
+      pointer-events: none;
+    }
+
+    #canvas {
+      max-width: 100%;
+      max-height: 100%;
+      display: block;
+    }
+
+    .mono { font-family: 'Geist Mono', ui-monospace, monospace; }
+  </style>
 </head>
 <body>
   <main id="app">
