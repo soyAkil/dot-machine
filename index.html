@@ -75,6 +75,8 @@
     .section { padding: 16px 0; border-top: 1px solid var(--hairline); }
     .section:first-of-type { border-top: 0; padding-top: 0; }
     .section-label { font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: rgba(28, 8, 2, 0.5); margin: 0 0 12px; }
+
+    #stage.drop-active { background: rgba(173, 231, 255, 0.15); }
   </style>
 </head>
 <body>
@@ -88,6 +90,7 @@
     <section id="stage">
       <div id="empty">drop an image or video here</div>
       <canvas id="canvas" hidden></canvas>
+      <input id="file" type="file" accept="image/*,video/*" hidden />
     </section>
   </main>
   <script>
@@ -114,6 +117,109 @@
       listeners.forEach(fn => fn(state));
     }
     function onState(fn) { listeners.add(fn); fn(state); }
+
+    // ============================================================
+    // SECTION 3: MEDIA — file load, drag/drop, video lifecycle
+    // ============================================================
+    const fileInput = document.getElementById('file');
+    const stage = document.getElementById('stage');
+    const empty = document.getElementById('empty');
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+
+    stage.addEventListener('click', () => { if (!state.source) fileInput.click(); });
+    fileInput.addEventListener('change', e => {
+      const f = e.target.files?.[0];
+      if (f) loadFile(f);
+    });
+
+    ['dragenter', 'dragover'].forEach(evt =>
+      stage.addEventListener(evt, e => { e.preventDefault(); stage.classList.add('drop-active'); })
+    );
+    ['dragleave', 'drop'].forEach(evt =>
+      stage.addEventListener(evt, e => { e.preventDefault(); stage.classList.remove('drop-active'); })
+    );
+    stage.addEventListener('drop', e => {
+      const f = e.dataTransfer?.files?.[0];
+      if (f) loadFile(f);
+    });
+
+    let rafId = null;
+
+    async function loadFile(file) {
+      releaseSource();
+      if (file.type.startsWith('image/')) {
+        const bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' });
+        state.source = { kind: 'image', el: bitmap, width: bitmap.width, height: bitmap.height, durationOk: false };
+        onSourceReady();
+      } else if (file.type.startsWith('video/')) {
+        await loadVideo(file);
+      } else {
+        alert('Unsupported file type');
+      }
+    }
+
+    function releaseSource() {
+      if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+      if (!state.source) return;
+      if (state.source.kind === 'video') {
+        state.source.el.pause();
+        URL.revokeObjectURL(state.source.el.src);
+      } else if (state.source.kind === 'image' && state.source.el.close) {
+        state.source.el.close();
+      }
+      state.source = null;
+    }
+
+    async function loadVideo(file) {
+      const url = URL.createObjectURL(file);
+      const v = document.createElement('video');
+      v.src = url;
+      v.muted = true;
+      v.loop = true;
+      v.playsInline = true;
+      await new Promise((res, rej) => {
+        v.addEventListener('loadeddata', res, { once: true });
+        v.addEventListener('error', rej, { once: true });
+      });
+      state.source = {
+        kind: 'video',
+        el: v,
+        width: v.videoWidth,
+        height: v.videoHeight,
+        durationOk: isFinite(v.duration) && v.duration > 0,
+      };
+      v.play().catch(() => { /* autoplay sometimes blocked; user can resume */ });
+      onSourceReady();
+      startVideoLoop();
+    }
+
+    function onSourceReady() {
+      empty.hidden = true;
+      canvas.hidden = false;
+      render();
+    }
+
+    function startVideoLoop() {
+      if (rafId) cancelAnimationFrame(rafId);
+      const tick = () => {
+        if (state.source?.kind === 'video') {
+          render();
+          rafId = requestAnimationFrame(tick);
+        }
+      };
+      rafId = requestAnimationFrame(tick);
+    }
+
+    function render() {
+      // Stub; real implementation in Section 4.
+      const src = state.source;
+      if (!src) return;
+      canvas.width = src.width;
+      canvas.height = src.height;
+      ctx.fillStyle = state.bgColor;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
   </script>
 </body>
 </html>
