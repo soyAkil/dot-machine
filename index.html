@@ -67,11 +67,24 @@
     }
 
     .mono { font-family: 'Geist Mono', ui-monospace, monospace; }
+
+    #rail-head { margin-bottom: 28px; }
+    .title { font-size: 14px; font-weight: 600; letter-spacing: 0.02em; margin: 0; }
+    .subtitle { font-size: 11px; color: rgba(28, 8, 2, 0.5); margin: 4px 0 0; }
+
+    .section { padding: 16px 0; border-top: 1px solid var(--hairline); }
+    .section:first-of-type { border-top: 0; padding-top: 0; }
+    .section-label { font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: rgba(28, 8, 2, 0.5); margin: 0 0 12px; }
   </style>
 </head>
 <body>
   <main id="app">
-    <aside id="rail"></aside>
+    <aside id="rail">
+      <header id="rail-head">
+        <h1 class="title">DOT MACHINE</h1>
+        <p class="subtitle mono">halftone tool</p>
+      </header>
+    </aside>
     <section id="stage">
       <div id="empty">drop an image or video here</div>
       <canvas id="canvas" hidden></canvas>
