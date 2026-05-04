@@ -1198,16 +1198,32 @@
       requestAnimationFrame(tick);
     }
 
+    // Both the gif.js library and its worker live on jsDelivr. The library can be
+    // loaded as a <script>, but the worker must run from a same-origin URL — Web
+    // Workers can't be constructed from cross-origin scripts. We fetch the worker
+    // text and wrap it in a Blob URL on this origin.
     let gifJsLoaded = null;
+    let gifWorkerUrl = null;
     function loadGifJs() {
       if (gifJsLoaded) return gifJsLoaded;
-      gifJsLoaded = new Promise((res, rej) => {
-        const s = document.createElement('script');
-        s.src = 'https://cdn.jsdelivr.net/npm/gif.js.optimized@1.0.1/dist/gif.js';
-        s.onload = res;
-        s.onerror = rej;
-        document.head.appendChild(s);
-      });
+      const libUrl = 'https://cdn.jsdelivr.net/npm/gif.js.optimized@1.0.1/dist/gif.js';
+      const workerUrl = 'https://cdn.jsdelivr.net/npm/gif.js.optimized@1.0.1/dist/gif.worker.js';
+      gifJsLoaded = Promise.all([
+        new Promise((res, rej) => {
+          const s = document.createElement('script');
+          s.src = libUrl;
+          s.onload = res;
+          s.onerror = () => rej(new Error('Failed to load gif.js'));
+          document.head.appendChild(s);
+        }),
+        fetch(workerUrl).then(r => {
+          if (!r.ok) throw new Error(`Failed to fetch gif.worker.js (${r.status})`);
+          return r.text();
+        }).then(text => {
+          const blob = new Blob([text], { type: 'application/javascript' });
+          gifWorkerUrl = URL.createObjectURL(blob);
+        }),
+      ]);
       return gifJsLoaded;
     }
 
@@ -1229,7 +1245,7 @@
       const gif = new GIF({
         workers: 2,
         quality: 10,
-        workerScript: 'https://cdn.jsdelivr.net/npm/gif.js.optimized@1.0.1/dist/gif.worker.js',
+        workerScript: gifWorkerUrl,
         width: canvas.width,
         height: canvas.height,
         transparent: useThreshold ? 0x000000 : null,
