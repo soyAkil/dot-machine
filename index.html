@@ -668,9 +668,6 @@
       // Advanced
       minDotSize: 0,       // 0 = no minimum (light areas have no dots)
       maxDotSize: 0,       // 0 = no max cap (limited only by cellSize / dotScale)
-      // Export format (per source kind)
-      imgFormat: 'png',    // 'png' | 'jpeg' | 'svg'
-      vidFormat: 'webm',   // 'webm' | 'mp4' | 'gif'
       // Preview zoom
       zoom: 1,
     };
@@ -766,10 +763,8 @@
       canvasWrap.hidden = false;
       stageChrome.hidden = false;
       pan.x = 0; pan.y = 0;
-      state.zoom = 1; // assigning directly to skip a noop setState path that wouldn't trigger pan reset
-      setState({ zoom: 1 });
-      render();
-      applyTransform();
+      render();                  // sizes the canvas
+      setState({ zoom: 1 });     // fires listeners → applyTransform, updateExportInfo
     }
 
     function onSourceCleared() {
@@ -807,6 +802,7 @@
 
     const bufCanvas = document.createElement('canvas');
     const bufCtx = bufCanvas.getContext('2d', { willReadFrequently: true });
+    let lumaBuf = null;
 
     function buildLumaBuffer(source, cols, rows) {
       bufCanvas.width = cols;
@@ -814,25 +810,30 @@
       bufCtx.clearRect(0, 0, cols, rows);
       bufCtx.drawImage(source, 0, 0, cols, rows);
       const { data } = bufCtx.getImageData(0, 0, cols, rows);
-      const out = new Float32Array(cols * rows);
+      const n = cols * rows;
+      if (!lumaBuf || lumaBuf.length !== n) lumaBuf = new Float32Array(n);
       for (let i = 0, j = 0; i < data.length; i += 4, j++) {
-        out[j] = rgbaToLuma(data[i], data[i + 1], data[i + 2]);
+        lumaBuf[j] = rgbaToLuma(data[i], data[i + 1], data[i + 2]);
       }
-      return out;
+      return lumaBuf;
     }
 
     const PREVIEW_MAX = 1280;
+    const EXPORT_MAX = 4096;
 
-    // Compute grid-aligned dimensions: canvas size is always an exact multiple
-    // of cellSize on both axes, so dots fill the output edge-to-edge — no
-    // leftover strip on the right/bottom when cellSize doesn't divide cleanly.
-    function computeDims(srcW, srcH, cs, maxSide) {
-      const scale = Math.min(1, maxSide / Math.max(srcW, srcH));
-      const tw = srcW * scale;
-      const th = srcH * scale;
+    // Compute grid-aligned dimensions. The cell count (cols × rows) is fixed
+    // by the preview-cap dimensions, then cs is scaled up proportionally for
+    // higher-resolution targets — so the export shows the *same* dot pattern
+    // as the preview, just at higher resolution.
+    function computeDims(srcW, srcH, csState, maxSide) {
+      const targetScale = Math.min(1, maxSide / Math.max(srcW, srcH));
+      const previewS = Math.min(1, PREVIEW_MAX / Math.max(srcW, srcH));
+      const cs = csState * targetScale / previewS;
+      const tw = srcW * targetScale;
+      const th = srcH * targetScale;
       const cols = Math.max(1, Math.round(tw / cs));
       const rows = Math.max(1, Math.round(th / cs));
-      return { cols, rows, W: cols * cs, H: rows * cs };
+      return { cs, cols, rows, W: cols * cs, H: rows * cs };
     }
 
     function paintHalftone(targetCtx, cols, rows, cs, luma) {
@@ -855,11 +856,12 @@
       const halfCell = cs / 2;
       const minR = state.minDotSize > 0 ? state.minDotSize : 0;
       const maxRCap = state.maxDotSize > 0 ? state.maxDotSize : Infinity;
+      const b = state.brightness, c = state.contrast, invert = state.invert, dotScale = state.dotScale;
       for (let j = 0; j < rows; j++) {
         for (let i = 0; i < cols; i++) {
-          const L = adjust(luma[j * cols + i], state.brightness, state.contrast);
-          const darkness = state.invert ? L : 1 - L;
-          let r = darkness * halfCell * state.dotScale;
+          const L = adjust(luma[j * cols + i], b, c);
+          const darkness = invert ? L : 1 - L;
+          let r = darkness * halfCell * dotScale;
           if (minR > 0) r = Math.max(minR, r);
           r = Math.min(maxRCap, r);
           if (r < 0.4) continue;
@@ -875,8 +877,7 @@
     function render() {
       const src = state.source;
       if (!src) return;
-      const cs = state.cellSize;
-      const { cols, rows, W, H } = computeDims(src.width, src.height, cs, PREVIEW_MAX);
+      const { cs, cols, rows, W, H } = computeDims(src.width, src.height, state.cellSize, PREVIEW_MAX);
       if (canvas.width !== W) canvas.width = W;
       if (canvas.height !== H) canvas.height = H;
       updateExportInfo();
@@ -889,21 +890,25 @@
     // ============================================================
     // SECTION 6: EXPORT_IMG — PNG / JPEG / SVG / clipboard
     // ============================================================
-    const EXPORT_MAX = 4096; // hard cap per spec §6
     const dlBtn = document.getElementById('dl-btn');
     const dlMenu = document.getElementById('dl-menu');
     const copyBtn = document.getElementById('copy-btn');
     const exportInfo = document.getElementById('export-info');
 
+    let lastExportInfoText = null;
     function updateExportInfo() {
       const src = state.source;
-      if (!src) { exportInfo.textContent = ''; return; }
-      if (src.kind === 'image') {
+      let text;
+      if (!src) text = '';
+      else if (src.kind === 'image') {
         const { W, H } = computeDims(src.width, src.height, state.cellSize, EXPORT_MAX);
-        exportInfo.textContent = `${W} × ${H}`;
+        text = `${W} × ${H}`;
       } else {
-        exportInfo.textContent = `${canvas.width} × ${canvas.height} (preview)`;
+        text = `${canvas.width} × ${canvas.height} (preview)`;
       }
+      if (text === lastExportInfoText) return;
+      lastExportInfoText = text;
+      exportInfo.textContent = text;
     }
     onState(updateExportInfo);
 
@@ -927,7 +932,7 @@
       } else {
         const canRecord = state.source.durationOk;
         VID_FORMATS.forEach(f => {
-          const isBitmapVideo = f.label !== 'GIF';
+          const isBitmapVideo = f.id !== 'gif';
           const disabled = (isBitmapVideo && transOn) || !canRecord;
           const hint = !canRecord ? 'no duration' : (transOn && isBitmapVideo ? 'needs opaque' : '');
           const tooltip = !canRecord ? "Streaming or fragmented media has no known duration." : (transOn && isBitmapVideo ? `${f.label} can't carry transparency. Untick the transparent toggle to enable.` : '');
@@ -950,7 +955,6 @@
       dlMenu.appendChild(b);
     }
 
-    // Hide Copy for video sources (no useful clipboard action there)
     onState(() => {
       copyBtn.style.display = state.source?.kind === 'video' ? 'none' : '';
     });
@@ -968,8 +972,7 @@
 
     function renderToOffscreen() {
       const src = state.source;
-      const cs = state.cellSize;
-      const { cols, rows, W, H } = computeDims(src.width, src.height, cs, EXPORT_MAX);
+      const { cs, cols, rows, W, H } = computeDims(src.width, src.height, state.cellSize, EXPORT_MAX);
       const off = document.createElement('canvas');
       off.width = W; off.height = H;
       const octx = off.getContext('2d');
@@ -980,8 +983,7 @@
 
     function exportSvg() {
       const src = state.source;
-      const cs = state.cellSize;
-      const { cols, rows, W, H } = computeDims(src.width, src.height, cs, EXPORT_MAX);
+      const { cs, cols, rows, W, H } = computeDims(src.width, src.height, state.cellSize, EXPORT_MAX);
       const luma = buildLumaBuffer(src.el, cols, rows);
 
       const halfCell = cs / 2;
@@ -990,13 +992,14 @@
       const bgRect = state.bgTransparent ? '' : `<rect width="${W}" height="${H}" fill="${state.bgColor}"/>`;
       const minR = state.minDotSize > 0 ? state.minDotSize : 0;
       const maxRCap = state.maxDotSize > 0 ? state.maxDotSize : Infinity;
+      const b = state.brightness, c = state.contrast, invert = state.invert, dotScale = state.dotScale;
 
       const circles = [];
       for (let j = 0; j < rows; j++) {
         for (let i = 0; i < cols; i++) {
-          const L = adjust(luma[j * cols + i], state.brightness, state.contrast);
-          const darkness = state.invert ? L : 1 - L;
-          let r = darkness * halfCell * state.dotScale;
+          const L = adjust(luma[j * cols + i], b, c);
+          const darkness = invert ? L : 1 - L;
+          let r = darkness * halfCell * dotScale;
           if (minR > 0) r = Math.max(minR, r);
           r = Math.min(maxRCap, r);
           if (r < 0.4) continue;
@@ -1074,14 +1077,18 @@
       chromeProgressPct.textContent = '';
       chromeProgressFill.classList.add('indeterminate');
       chromeProgressFill.style.removeProperty('--progress');
+      lastProgressPct = -1;
       chromeDefault.hidden = true;
       chromeProgress.hidden = false;
     }
+    let lastProgressPct = -1;
     function setProgress(pct) {
-      // pct: 0..1
+      const newPct = Math.round(Math.max(0, Math.min(1, pct)) * 100);
+      if (newPct === lastProgressPct) return;
+      lastProgressPct = newPct;
       chromeProgressFill.classList.remove('indeterminate');
-      chromeProgressFill.style.setProperty('--progress', `${Math.max(0, Math.min(1, pct)) * 100}%`);
-      chromeProgressPct.textContent = `${Math.round(pct * 100)}%`;
+      chromeProgressFill.style.setProperty('--progress', `${newPct}%`);
+      chromeProgressPct.textContent = `${newPct}%`;
     }
     function hideProgress() {
       chromeProgress.hidden = true;
@@ -1102,7 +1109,7 @@
     let activeRecorder = null;
 
     async function exportVideo(format) {
-      if (format.label === 'GIF') return exportGif();
+      if (format.id === 'gif') return exportGif();
       return recordCanvasStream(format);
     }
 
@@ -1319,7 +1326,6 @@
         updateProgress();
       });
 
-      // Click value to edit with keyboard
       const startEdit = () => {
         if (row.querySelector('.val-edit')) return;
         const editor = document.createElement('input');
@@ -1427,13 +1433,12 @@
       console.assert(adjust(-2, 0, 0) === 0, 'clamp lower');
       console.assert(Math.abs(rgbaToLuma(255, 255, 255) - 1) < 1e-9, 'white luma');
       console.assert(rgbaToLuma(0, 0, 0) === 0, 'black luma');
-      console.assert(VID_FORMATS.some(f => f.label === 'GIF'), 'GIF always present');
+      console.assert(VID_FORMATS.some(f => f.id === 'gif'), 'GIF always present');
       console.log('asserts: ok');
       console.log('vid formats:', VID_FORMATS.map(f => f.label).join(', '));
     }
     if (location.search.includes('debug')) runDebugAsserts();
 
-    // Mount controls
     const fmtPx = v => `${Math.round(v)} px`;
     const fmtFloat = v => `${v >= 0 ? '+' : ''}${v.toFixed(2)}`;
     const fmtPct = v => `${Math.round(v * 100)}%`;
@@ -1463,10 +1468,13 @@
     };
     document.getElementById('reset').addEventListener('click', () => setState({ ...DEFAULTS, zoom: state.zoom }));
 
-    // Stage chrome: replace + zoom
-    document.querySelector('#stage-chrome .replace-btn').addEventListener('click', () => fileInput.click());
+    const replaceBtn = stageChrome.querySelector('.replace-btn');
+    const zoomInBtn = stageChrome.querySelector('.zoom-in');
+    const zoomOutBtn = stageChrome.querySelector('.zoom-out');
+    const zoomValEl = stageChrome.querySelector('.zoom-val');
+    replaceBtn.addEventListener('click', () => fileInput.click());
 
-    // Pan stored outside state — purely transient view, doesn't trigger renders
+    // Pan lives outside state — transient view that doesn't trigger renders
     const pan = { x: 0, y: 0 };
 
     function applyTransform() {
@@ -1492,8 +1500,14 @@
     }
     function resetPan() { pan.x = 0; pan.y = 0; applyTransform(); }
 
-    // Recompute layout when window resizes (wrap dimensions change)
-    window.addEventListener('resize', () => applyTransform());
+    let transformScheduled = false;
+    function scheduleTransform() {
+      if (transformScheduled) return;
+      transformScheduled = true;
+      requestAnimationFrame(() => { transformScheduled = false; applyTransform(); });
+    }
+
+    window.addEventListener('resize', scheduleTransform);
 
     const ZOOM_STEPS = [0.5, 0.75, 1, 1.25, 1.5, 2, 3, 4];
     function clampZoom(z) { return Math.max(0.5, Math.min(4, z)); }
@@ -1519,9 +1533,9 @@
       pan.y = (atClientY - wrapCy) * (1 - f) + pan.y * f;
       setState({ zoom: clampZoom(newZoom) });
     }
-    document.querySelector('#stage-chrome .zoom-in').addEventListener('click', () => setZoom(nextZoom(+1)));
-    document.querySelector('#stage-chrome .zoom-out').addEventListener('click', () => setZoom(nextZoom(-1)));
-    document.querySelector('#stage-chrome .zoom-val').addEventListener('click', () => setZoom(1));
+    zoomInBtn.addEventListener('click', () => setZoom(nextZoom(+1)));
+    zoomOutBtn.addEventListener('click', () => setZoom(nextZoom(-1)));
+    zoomValEl.addEventListener('click', () => setZoom(1));
 
     // Wheel zoom — anchors zoom on the cursor position
     canvasWrap.addEventListener('wheel', e => {
@@ -1544,7 +1558,7 @@
       if (!dragStart) return;
       pan.x = dragStart.panX + (e.clientX - dragStart.x);
       pan.y = dragStart.panY + (e.clientY - dragStart.y);
-      applyTransform();
+      scheduleTransform();
     });
     const endDrag = e => {
       if (!dragStart) return;
@@ -1555,15 +1569,17 @@
     canvas.addEventListener('pointerup', endDrag);
     canvas.addEventListener('pointercancel', endDrag);
 
-    // Update transform whenever state changes (zoom, source) or on demand
-    const zoomValEl = document.querySelector('#stage-chrome .zoom-val');
-    let lastZoom = state.zoom;
+    let lastZoom = state.zoom, lastCw = 0, lastCh = 0;
     onState(() => {
-      // Reset pan when zoom returns to 1
       if (state.zoom <= 1.001 && (pan.x !== 0 || pan.y !== 0)) {
         pan.x = 0; pan.y = 0;
       }
+      const zoomChanged = state.zoom !== lastZoom;
+      const dimsChanged = canvas.width !== lastCw || canvas.height !== lastCh;
+      if (!zoomChanged && !dimsChanged) return;
       lastZoom = state.zoom;
+      lastCw = canvas.width;
+      lastCh = canvas.height;
       applyTransform();
     });
 
