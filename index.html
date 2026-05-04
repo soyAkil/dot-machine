@@ -116,9 +116,8 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 0;
-      max-width: 420px;
-      padding: 56px 32px;
+      gap: 24px;
+      padding: 24px;
       transition: opacity 240ms var(--ease), filter 240ms var(--ease);
       animation: emptyIn 600ms var(--ease) both;
     }
@@ -130,32 +129,13 @@
 
     .empty-icon {
       display: block;
-      width: 100%; max-width: 280px; height: auto;
-      opacity: 0.95;
-      user-select: none;
-      -webkit-user-drag: none;
+      width: 120px; height: 120px;
+      color: var(--gaffer);
       animation: emptyIconBreath 5s ease-in-out infinite;
     }
     @keyframes emptyIconBreath {
       0%, 100% { transform: scale(1); }
       50% { transform: scale(1.025); }
-    }
-    .empty-title {
-      font-size: 24px;
-      font-weight: 600;
-      color: var(--gaffer);
-      margin: 24px 0 0;
-      letter-spacing: -0.01em;
-      text-wrap: balance;
-      text-align: center;
-    }
-    .empty-sub {
-      font-family: 'Geist Mono', ui-monospace, monospace;
-      font-size: 12px;
-      color: var(--muted);
-      margin: 8px 0 28px;
-      letter-spacing: 0.02em;
-      text-align: center;
     }
     .empty-btn {
       font-family: inherit;
@@ -175,60 +155,43 @@
     .empty-btn:active { transform: scale(0.96); }
     .empty-btn:focus-visible { outline: 2px solid var(--gaffer); outline-offset: 3px; }
     .empty-hint {
-      display: flex;
-      align-items: center;
-      gap: 8px;
       font-family: 'Geist Mono', ui-monospace, monospace;
       font-size: 10px;
       color: var(--muted-soft);
-      margin: 16px 0 0;
+      margin: -8px 0 0;
       letter-spacing: 0.06em;
       text-transform: uppercase;
       pointer-events: none;
-    }
-    .empty-hint::before, .empty-hint::after {
-      content: ''; flex: 0 0 24px; height: 1px; background: var(--hairline-strong);
-    }
-    .empty-formats {
-      display: flex;
-      gap: 6px;
-      margin-top: 20px;
-      pointer-events: none;
-    }
-    .empty-formats span {
-      font-family: 'Geist Mono', ui-monospace, monospace;
-      font-size: 9px;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      color: var(--muted-soft);
-      padding: 3px 8px;
-      border: 1px solid var(--hairline);
-      border-radius: 999px;
     }
 
     /* Canvas viewport — fills the entire stage, clips zoomed content */
     .canvas-wrap {
       position: absolute;
-      inset: 32px;
+      inset: 0;
       overflow: hidden;
       display: grid;
       place-items: center;
+      padding: 32px;
     }
     #canvas {
-      max-width: 100%;
-      max-height: 100%;
       display: block;
-      transform: translate(var(--pan-x, 0px), var(--pan-y, 0px)) scale(var(--zoom, 1));
+      /* Width and height are set in JS to give a smooth 'contain → cover' transition
+         as zoom passes 1.0 — this avoids the gray bands that scale-only would leave
+         around the canvas at zooms slightly > 1. */
+      transform: translate(var(--pan-x, 0px), var(--pan-y, 0px));
       transform-origin: center;
-      transition: transform 220ms var(--ease);
-      will-change: transform;
-      /* Pure black at low alpha — never tinted neutrals (would read as grime) */
+      transition: width 220ms var(--ease), height 220ms var(--ease), transform 220ms var(--ease), box-shadow 220ms var(--ease);
+      will-change: transform, width, height;
       box-shadow:
         0 0 0 1px rgba(0, 0, 0, 0.06),
         0 1px 2px rgba(0, 0, 0, 0.04),
         0 6px 24px -10px rgba(0, 0, 0, 0.12);
     }
-    #canvas.zoomed { cursor: grab; }
+    #canvas.zoomed {
+      cursor: grab;
+      /* When zoomed, content fills the viewport — frame shadow would clip awkwardly */
+      box-shadow: none;
+    }
     #canvas.dragging { cursor: grabbing; transition: none; user-select: none; }
 
     /* Drop-active: subtle dashed inset ring on the stage */
@@ -451,7 +414,8 @@
       to   { opacity: 1; transform: none; }
     }
     .dl-menu button {
-      display: block; width: 100%;
+      display: flex; align-items: center; justify-content: space-between;
+      width: 100%;
       padding: 8px 12px;
       border: 0; background: none; text-align: left; cursor: pointer;
       font-family: inherit; font-size: 12px; color: var(--fg);
@@ -459,7 +423,8 @@
       transition: background-color 140ms var(--ease);
     }
     .dl-menu button:hover:not(:disabled) { background: rgba(28, 8, 2, 0.06); }
-    .dl-menu button:disabled { opacity: 0.4; cursor: not-allowed; }
+    .dl-menu button:disabled { opacity: 0.5; cursor: help; }
+    .dl-menu .opt-hint { font-size: 9px; color: var(--muted-soft); letter-spacing: 0.06em; text-transform: uppercase; margin-left: 12px; }
 
     .btn {
       display: block; width: 100%;
@@ -552,38 +517,41 @@
     .zoom-val { min-width: 40px; text-align: center; font-family: 'Geist Mono', ui-monospace, monospace; font-size: 10px; color: var(--muted); cursor: pointer; padding: 4px 4px; border-radius: 4px; transition: background-color 160ms var(--ease); }
     .zoom-val:hover { background: rgba(28, 8, 2, 0.06); color: var(--fg); }
 
-    /* Progress toast — replaces stage-chrome when active */
-    #progress {
-      position: absolute;
-      bottom: 24px;
-      left: 50%;
-      transform: translateX(-50%);
-      display: flex;
-      align-items: center;
-      gap: 14px;
-      padding: 10px 14px 10px 18px;
+    .chrome-default { display: flex; align-items: center; gap: 4px; }
+    .chrome-progress {
+      display: flex; align-items: center; gap: 12px;
+      padding: 4px 8px 4px 14px;
+      animation: chromeProgressIn 280ms var(--ease);
+    }
+    @keyframes chromeProgressIn {
+      from { opacity: 0; transform: translateY(-2px); }
+      to { opacity: 1; transform: none; }
+    }
+    .chrome-progress .progress-label { font-size: 11px; color: var(--fg); white-space: nowrap; }
+    .chrome-progress .progress-pct { font-size: 10px; color: var(--muted); min-width: 32px; text-align: right; font-variant-numeric: tabular-nums; }
+    .progress-bar {
+      width: 120px;
+      height: 3px;
+      background: rgba(28, 8, 2, 0.10);
+      border-radius: 999px;
+      overflow: hidden;
+    }
+    .progress-bar-fill {
+      height: 100%;
+      width: var(--progress, 0%);
       background: var(--gaffer);
-      color: #fff;
       border-radius: 999px;
-      box-shadow: 0 8px 28px -8px rgba(0, 0, 0, 0.35), 0 2px 6px rgba(0, 0, 0, 0.12);
-      z-index: 5;
-      animation: toastIn 220ms var(--ease);
+      transition: width 240ms var(--ease);
     }
-    @keyframes toastIn {
-      from { opacity: 0; transform: translate(-50%, 8px); }
-      to   { opacity: 1; transform: translate(-50%, 0); }
+    .progress-bar-fill.indeterminate {
+      width: 30%;
+      animation: indet 1.4s ease-in-out infinite;
     }
-    #progress .progress-label { font-size: 12px; font-variant-numeric: tabular-nums; letter-spacing: 0.01em; }
-    #progress .btn {
-      width: auto; margin: 0;
-      padding: 4px 10px;
-      font-size: 11px;
-      background: rgba(255, 255, 255, 0.12);
-      color: #fff;
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      border-radius: 999px;
+    @keyframes indet {
+      0% { transform: translateX(-130%); }
+      100% { transform: translateX(430%); }
     }
-    #progress .btn:hover:not(:disabled) { background: rgba(255, 255, 255, 0.22); border-color: rgba(255, 255, 255, 0.35); }
+
 
     @media (prefers-reduced-motion: reduce) {
       *, *::before, *::after {
@@ -645,14 +613,11 @@
     </aside>
     <section id="stage">
       <div id="empty">
-        <img class="empty-icon" src="laboule-logo.png" alt="" />
-        <h2 class="empty-title">Turn anything into halftone</h2>
-        <p class="empty-sub">Drop a file or pick one to get started</p>
+        <svg class="empty-icon" viewBox="0 0 382 382" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <g fill="currentColor"><rect x="173.898" width="1.857" height="1.857" rx="0.93"/><rect x="198.488" width="1.857" height="1.857" rx="0.93"/><rect x="99.756" y="24.742" width="2.601" height="2.601" rx="1.30"/><rect x="121.969" y="22.367" width="7.355" height="7.355" rx="3.68"/><rect x="144.416" y="20.219" width="11.641" height="11.641" rx="5.82"/><rect x="168.020" y="19.234" width="13.615" height="13.615" rx="6.81"/><rect x="192.992" y="19.617" width="12.848" height="12.848" rx="6.42"/><rect x="218.828" y="20.867" width="10.352" height="10.352" rx="5.18"/><rect x="244.963" y="22.406" width="7.267" height="7.267" rx="3.63"/><rect x="271.609" y="24.461" width="3.155" height="3.155" rx="1.58"/><rect x="73.549" y="47.711" width="5.833" height="5.833" rx="2.92"/><rect x="95.002" y="44.578" width="12.107" height="12.107" rx="6.05"/><rect x="117.139" y="42.125" width="17.013" height="17.013" rx="8.51"/><rect x="141.184" y="41.578" width="18.104" height="18.104" rx="9.05"/><rect x="165.984" y="41.789" width="17.683" height="17.683" rx="8.84"/><rect x="191.928" y="43.141" width="14.978" height="14.978" rx="7.49"/><rect x="217.834" y="44.461" width="12.343" height="12.343" rx="6.17"/><rect x="244.344" y="46.383" width="8.502" height="8.502" rx="4.25"/><rect x="271.201" y="48.648" width="3.967" height="3.967" rx="1.98"/><rect x="296.844" y="49.703" width="1.859" height="1.859" rx="0.93"/><rect x="48.174" y="71.516" width="7.402" height="7.402" rx="3.70"/><rect x="68.795" y="67.555" width="15.342" height="15.342" rx="7.67"/><rect x="90.922" y="65.086" width="20.270" height="20.270" rx="10.14"/><rect x="114.986" y="64.562" width="21.315" height="21.315" rx="10.66"/><rect x="139.576" y="64.562" width="21.313" height="21.313" rx="10.66"/><rect x="164.613" y="65.008" width="20.423" height="20.423" rx="10.21"/><rect x="190.785" y="66.594" width="17.257" height="17.257" rx="8.63"/><rect x="217.078" y="68.297" width="13.853" height="13.853" rx="6.93"/><rect x="243.652" y="70.281" width="9.882" height="9.882" rx="4.94"/><rect x="270.258" y="72.297" width="5.854" height="5.854" rx="2.93"/><rect x="296.045" y="73.492" width="3.458" height="3.458" rx="1.73"/><rect x="321.174" y="74.031" width="2.386" height="2.386" rx="1.19"/><rect x="24.420" y="96.945" width="5.731" height="5.731" rx="2.87"/><rect x="44.004" y="91.945" width="15.739" height="15.739" rx="7.87"/><rect x="64.982" y="88.328" width="22.969" height="22.969" rx="11.48"/><rect x="88.693" y="87.453" width="24.721" height="24.721" rx="12.36"/><rect x="113.400" y="87.562" width="24.490" height="24.490" rx="12.25"/><rect x="138.225" y="87.805" width="24.022" height="24.022" rx="12.01"/><rect x="163.328" y="88.312" width="22.997" height="22.997" rx="11.50"/><rect x="189.307" y="89.703" width="20.216" height="20.216" rx="10.11"/><rect x="215.855" y="91.656" width="16.299" height="16.299" rx="8.15"/><rect x="242.227" y="93.438" width="12.742" height="12.742" rx="6.37"/><rect x="268.879" y="95.508" width="8.610" height="8.610" rx="4.31"/><rect x="294.617" y="96.648" width="6.315" height="6.315" rx="3.16"/><rect x="319.693" y="97.141" width="5.344" height="5.344" rx="2.67"/><rect x="344.012" y="96.867" width="5.887" height="5.887" rx="2.94"/><rect x="20.984" y="118.102" width="12.601" height="12.601" rx="6.30"/><rect x="40.637" y="113.164" width="22.475" height="22.475" rx="11.24"/><rect x="62.643" y="110.578" width="27.646" height="27.646" rx="13.82"/><rect x="87.168" y="110.516" width="27.771" height="27.771" rx="13.89"/><rect x="111.949" y="110.703" width="27.392" height="27.392" rx="13.70"/><rect x="137.221" y="111.391" width="26.030" height="26.030" rx="13.01"/><rect x="162.293" y="111.867" width="25.067" height="25.067" rx="12.53"/><rect x="187.752" y="112.734" width="23.325" height="23.325" rx="11.66"/><rect x="213.971" y="114.367" width="20.068" height="20.068" rx="10.03"/><rect x="240.350" y="116.156" width="16.490" height="16.490" rx="8.25"/><rect x="266.539" y="117.758" width="13.290" height="13.290" rx="6.64"/><rect x="292.111" y="118.742" width="11.323" height="11.323" rx="5.66"/><rect x="317.148" y="119.188" width="10.435" height="10.435" rx="5.22"/><rect x="342.100" y="119.539" width="9.712" height="9.712" rx="4.86"/><rect x="369.869" y="122.727" width="3.353" height="3.353" rx="1.68"/><rect x="18.234" y="139.945" width="18.099" height="18.099" rx="9.05"/><rect x="38.314" y="135.430" width="27.122" height="27.122" rx="13.56"/><rect x="61.389" y="133.914" width="30.156" height="30.156" rx="15.08"/><rect x="85.951" y="133.883" width="30.211" height="30.211" rx="15.11"/><rect x="110.904" y="134.250" width="29.482" height="29.482" rx="14.74"/><rect x="136.072" y="134.828" width="28.325" height="28.325" rx="14.16"/><rect x="161.365" y="135.531" width="26.920" height="26.920" rx="13.46"/><rect x="186.682" y="136.258" width="25.467" height="25.467" rx="12.73"/><rect x="212.107" y="137.094" width="23.798" height="23.798" rx="11.90"/><rect x="238.027" y="138.422" width="21.135" height="21.135" rx="10.57"/><rect x="263.949" y="139.750" width="18.475" height="18.475" rx="9.24"/><rect x="289.348" y="140.562" width="16.854" height="16.854" rx="8.43"/><rect x="314.600" y="141.227" width="15.534" height="15.534" rx="7.77"/><rect x="340.148" y="142.180" width="13.616" height="13.616" rx="6.81"/><rect x="365.051" y="142.500" width="12.988" height="12.988" rx="6.49"/><rect x="1.766" y="172.648" width="1.857" height="1.857" rx="0.93"/><rect x="16.271" y="162.562" width="22.029" height="22.029" rx="11.01"/><rect x="36.943" y="158.648" width="29.863" height="29.863" rx="14.93"/><rect x="60.396" y="157.516" width="32.135" height="32.135" rx="16.07"/><rect x="84.855" y="157.383" width="32.399" height="32.399" rx="16.20"/><rect x="109.795" y="157.734" width="31.699" height="31.699" rx="15.85"/><rect x="134.984" y="158.336" width="30.498" height="30.498" rx="15.25"/><rect x="160.322" y="159.078" width="29.010" height="29.010" rx="14.51"/><rect x="185.744" y="159.906" width="27.343" height="27.343" rx="13.67"/><rect x="210.953" y="160.531" width="26.101" height="26.101" rx="13.05"/><rect x="236.119" y="161.102" width="24.953" height="24.953" rx="12.48"/><rect x="261.543" y="161.938" width="23.285" height="23.285" rx="11.64"/><rect x="287.051" y="162.852" width="21.447" height="21.447" rx="10.72"/><rect x="312.789" y="164.000" width="19.154" height="19.154" rx="9.58"/><rect x="338.584" y="165.211" width="16.747" height="16.747" rx="8.37"/><rect x="363.914" y="165.945" width="15.264" height="15.264" rx="7.63"/><rect x="0.773" y="196.250" width="3.843" height="3.843" rx="1.92"/><rect x="15.203" y="186.086" width="24.164" height="24.164" rx="12.08"/><rect x="36.197" y="182.492" width="31.357" height="31.357" rx="15.68"/><rect x="59.691" y="181.398" width="33.550" height="33.550" rx="16.78"/><rect x="84.221" y="181.336" width="33.671" height="33.671" rx="16.84"/><rect x="109.023" y="181.547" width="33.243" height="33.243" rx="16.62"/><rect x="134.211" y="182.148" width="32.046" height="32.046" rx="16.02"/><rect x="159.580" y="182.922" width="30.491" height="30.491" rx="15.25"/><rect x="184.748" y="183.508" width="29.334" height="29.334" rx="14.67"/><rect x="209.984" y="184.148" width="28.043" height="28.043" rx="14.02"/><rect x="235.121" y="184.695" width="26.952" height="26.952" rx="13.48"/><rect x="260.459" y="185.445" width="25.456" height="25.456" rx="12.73"/><rect x="285.775" y="186.172" width="24.001" height="24.001" rx="12.00"/><rect x="311.404" y="187.211" width="21.922" height="21.922" rx="10.96"/><rect x="337.543" y="188.766" width="18.821" height="18.821" rx="9.41"/><rect x="363.229" y="189.852" width="16.634" height="16.634" rx="8.32"/><rect x="15.422" y="210.898" width="23.726" height="23.726" rx="11.86"/><rect x="36.168" y="207.055" width="31.416" height="31.416" rx="15.71"/><rect x="59.451" y="205.742" width="34.029" height="34.029" rx="17.01"/><rect x="83.896" y="205.602" width="34.321" height="34.321" rx="17.16"/><rect x="108.547" y="205.664" width="34.194" height="34.194" rx="17.10"/><rect x="133.510" y="206.039" width="33.450" height="33.450" rx="16.73"/><rect x="158.666" y="206.602" width="32.320" height="32.320" rx="16.16"/><rect x="183.908" y="207.258" width="31.008" height="31.008" rx="15.50"/><rect x="209.145" y="207.898" width="29.720" height="29.720" rx="14.86"/><rect x="234.283" y="208.453" width="28.624" height="28.624" rx="14.31"/><rect x="259.607" y="209.180" width="27.155" height="27.155" rx="13.58"/><rect x="285.084" y="210.070" width="25.382" height="25.382" rx="12.69"/><rect x="310.906" y="211.297" width="22.918" height="22.918" rx="11.46"/><rect x="337.012" y="212.820" width="19.887" height="19.887" rx="9.94"/><rect x="362.930" y="214.148" width="17.234" height="17.234" rx="8.62"/><rect x="16.992" y="237.062" width="20.584" height="20.584" rx="10.29"/><rect x="36.682" y="232.156" width="30.389" height="30.389" rx="15.19"/><rect x="59.535" y="230.422" width="33.862" height="33.862" rx="16.93"/><rect x="83.771" y="230.062" width="34.568" height="34.568" rx="17.28"/><rect x="108.375" y="230.078" width="34.544" height="34.544" rx="17.27"/><rect x="133.076" y="230.195" width="34.318" height="34.318" rx="17.16"/><rect x="157.977" y="230.500" width="33.699" height="33.699" rx="16.85"/><rect x="183.129" y="231.062" width="32.573" height="32.573" rx="16.29"/><rect x="208.326" y="231.672" width="31.360" height="31.360" rx="15.68"/><rect x="233.545" y="232.297" width="30.100" height="30.100" rx="15.05"/><rect x="258.807" y="232.969" width="28.760" height="28.760" rx="14.38"/><rect x="284.461" y="234.031" width="26.629" height="26.629" rx="13.31"/><rect x="310.650" y="235.633" width="23.429" height="23.429" rx="11.71"/><rect x="337.113" y="237.508" width="19.681" height="19.681" rx="9.84"/><rect x="362.426" y="238.234" width="18.237" height="18.237" rx="9.12"/><rect x="19.766" y="264.422" width="15.036" height="15.036" rx="7.52"/><rect x="38.541" y="258.609" width="26.668" height="26.668" rx="13.33"/><rect x="60.197" y="255.672" width="32.533" height="32.533" rx="16.27"/><rect x="83.938" y="254.820" width="34.239" height="34.239" rx="17.12"/><rect x="108.307" y="254.602" width="34.680" height="34.680" rx="17.34"/><rect x="132.938" y="254.641" width="34.596" height="34.596" rx="17.30"/><rect x="157.750" y="254.867" width="34.153" height="34.153" rx="17.08"/><rect x="182.721" y="255.250" width="33.387" height="33.387" rx="16.69"/><rect x="207.721" y="255.656" width="32.572" height="32.572" rx="16.29"/><rect x="232.990" y="256.336" width="31.212" height="31.212" rx="15.61"/><rect x="258.537" y="257.289" width="29.296" height="29.296" rx="14.65"/><rect x="284.664" y="258.828" width="26.226" height="26.226" rx="13.11"/><rect x="311.150" y="260.727" width="22.430" height="22.430" rx="11.21"/><rect x="337.316" y="262.305" width="19.273" height="19.273" rx="9.64"/><rect x="42.902" y="287.555" width="17.945" height="17.945" rx="8.97"/><rect x="62.303" y="282.367" width="28.324" height="28.324" rx="14.16"/><rect x="84.549" y="280.023" width="33.013" height="33.013" rx="16.51"/><rect x="108.646" y="279.531" width="33.994" height="33.994" rx="17.00"/><rect x="133.184" y="279.477" width="34.101" height="34.101" rx="17.05"/><rect x="157.805" y="279.508" width="34.040" height="34.040" rx="17.02"/><rect x="182.697" y="279.812" width="33.436" height="33.436" rx="16.72"/><rect x="207.814" y="280.344" width="32.378" height="32.378" rx="16.19"/><rect x="233.320" y="281.258" width="30.550" height="30.550" rx="15.28"/><rect x="259.070" y="282.414" width="28.229" height="28.229" rx="14.11"/><rect x="285.334" y="284.086" width="24.881" height="24.881" rx="12.44"/><rect x="311.885" y="286.055" width="20.960" height="20.960" rx="10.48"/><rect x="337.494" y="287.070" width="18.920" height="18.920" rx="9.46"/><rect x="67.658" y="312.312" width="17.611" height="17.611" rx="8.81"/><rect x="87.553" y="307.617" width="27.004" height="27.004" rx="13.50"/><rect x="109.857" y="305.336" width="31.575" height="31.575" rx="15.79"/><rect x="133.768" y="304.656" width="32.934" height="32.934" rx="16.47"/><rect x="158.350" y="304.648" width="32.953" height="32.953" rx="16.48"/><rect x="183.156" y="304.859" width="32.522" height="32.522" rx="16.26"/><rect x="208.455" y="305.570" width="31.100" height="31.100" rx="15.55"/><rect x="234.037" y="306.562" width="29.119" height="29.119" rx="14.56"/><rect x="260.080" y="308.016" width="26.208" height="26.208" rx="13.10"/><rect x="286.695" y="310.039" width="22.161" height="22.161" rx="11.08"/><rect x="312.533" y="311.289" width="19.663" height="19.663" rx="9.83"/><rect x="94.262" y="338.914" width="13.584" height="13.584" rx="6.79"/><rect x="114.373" y="334.438" width="22.542" height="22.542" rx="11.27"/><rect x="136.416" y="331.891" width="27.637" height="27.637" rx="13.82"/><rect x="160.080" y="330.969" width="29.491" height="29.491" rx="14.75"/><rect x="184.742" y="331.039" width="29.345" height="29.345" rx="14.67"/><rect x="210.059" y="331.766" width="27.892" height="27.892" rx="13.95"/><rect x="236.031" y="333.148" width="25.125" height="25.125" rx="12.56"/><rect x="262.162" y="334.688" width="22.047" height="22.047" rx="11.02"/><rect x="287.896" y="335.836" width="19.755" height="19.755" rx="9.88"/><rect x="142.520" y="362.586" width="15.435" height="15.435" rx="7.72"/><rect x="164.725" y="360.203" width="20.203" height="20.203" rx="10.10"/><rect x="188.303" y="359.188" width="22.229" height="22.229" rx="11.11"/><rect x="212.865" y="359.164" width="22.276" height="22.276" rx="11.14"/><rect x="238.307" y="360.016" width="20.574" height="20.574" rx="10.29"/></g>
+        </svg>
         <button id="empty-btn" class="empty-btn" type="button">Add a file</button>
         <p class="empty-hint">or drop anywhere</p>
-        <div class="empty-formats" aria-hidden="true">
-          <span>JPG</span><span>PNG</span><span>WEBP</span><span>MP4</span><span>WEBM</span><span>MOV</span>
-        </div>
       </div>
       <div class="canvas-wrap" hidden>
         <canvas id="canvas"></canvas>
@@ -660,18 +625,21 @@
       <input id="file" type="file" accept="image/*,video/*" hidden />
 
       <div id="stage-chrome" hidden>
-        <button class="chrome-btn replace-btn" type="button">Replace the file</button>
-        <span class="chrome-divider"></span>
-        <div class="chrome-zoom">
-          <button class="chrome-btn icon zoom-out" type="button" aria-label="Zoom out">−</button>
-          <span class="zoom-val mono" title="Click to reset">100%</span>
-          <button class="chrome-btn icon zoom-in" type="button" aria-label="Zoom in">+</button>
+        <div class="chrome-default">
+          <button class="chrome-btn replace-btn" type="button">Replace the file</button>
+          <span class="chrome-divider"></span>
+          <div class="chrome-zoom">
+            <button class="chrome-btn icon zoom-out" type="button" aria-label="Zoom out">−</button>
+            <span class="zoom-val mono" title="Click to reset">100%</span>
+            <button class="chrome-btn icon zoom-in" type="button" aria-label="Zoom in">+</button>
+          </div>
         </div>
-      </div>
-
-      <div id="progress" hidden>
-        <span class="mono progress-label">recording…</span>
-        <button id="cancel-rec" class="btn">cancel</button>
+        <div class="chrome-progress" hidden>
+          <span class="progress-label mono">Recording…</span>
+          <div class="progress-bar"><div class="progress-bar-fill"></div></div>
+          <span class="progress-pct mono">0%</span>
+          <button id="cancel-rec" class="chrome-btn icon" type="button" aria-label="Cancel">×</button>
+        </div>
       </div>
     </section>
   </main>
@@ -791,8 +759,11 @@
       empty.hidden = true;
       canvasWrap.hidden = false;
       stageChrome.hidden = false;
+      pan.x = 0; pan.y = 0;
+      state.zoom = 1; // assigning directly to skip a noop setState path that wouldn't trigger pan reset
       setState({ zoom: 1 });
       render();
+      applyTransform();
     }
 
     function onSourceCleared() {
@@ -945,23 +916,28 @@
       const transOn = state.dotTransparent || state.bgTransparent;
       if (state.source.kind === 'image') {
         addOption('PNG', () => exportImage('png'));
-        addOption('JPEG', () => exportImage('jpeg'), transOn, transOn ? "no alpha — disabled" : '');
+        addOption('JPEG', () => exportImage('jpeg'), transOn, transOn ? "needs opaque" : '', transOn ? "JPEG can't carry transparency. Untick the transparent toggle to enable." : '');
         addOption('SVG', () => exportImage('svg'));
       } else {
         const canRecord = state.source.durationOk;
         VID_FORMATS.forEach(f => {
           const isBitmapVideo = f.label !== 'GIF';
           const disabled = (isBitmapVideo && transOn) || !canRecord;
-          const tooltip = !canRecord ? "duration unknown — can't export" : (transOn && isBitmapVideo ? "no alpha — disabled" : '');
-          addOption(f.label, () => exportVideo(f), disabled, tooltip);
+          const hint = !canRecord ? 'no duration' : (transOn && isBitmapVideo ? 'needs opaque' : '');
+          const tooltip = !canRecord ? "Streaming or fragmented media has no known duration." : (transOn && isBitmapVideo ? `${f.label} can't carry transparency. Untick the transparent toggle to enable.` : '');
+          addOption(f.label, () => exportVideo(f), disabled, hint, tooltip);
         });
       }
     }
 
-    function addOption(label, fn, disabled = false, tooltip = '') {
+    function addOption(label, fn, disabled = false, hint = '', tooltip = '') {
       const b = document.createElement('button');
-      b.textContent = label;
       b.type = 'button';
+      if (hint) {
+        b.innerHTML = `<span>${label}</span><span class="opt-hint mono">${hint}</span>`;
+      } else {
+        b.textContent = label;
+      }
       if (disabled) b.disabled = true;
       if (tooltip) b.title = tooltip;
       b.addEventListener('click', () => { dlMenu.hidden = true; fn(); });
@@ -1079,20 +1055,31 @@
       return out;
     })();
 
-    const progressEl = document.getElementById('progress');
-    const progressLabel = progressEl.querySelector('.progress-label');
     const cancelBtn = document.getElementById('cancel-rec');
 
+    const chromeDefault = document.querySelector('.chrome-default');
+    const chromeProgress = document.querySelector('.chrome-progress');
+    const chromeProgressLabel = chromeProgress.querySelector('.progress-label');
+    const chromeProgressPct = chromeProgress.querySelector('.progress-pct');
+    const chromeProgressFill = chromeProgress.querySelector('.progress-bar-fill');
+
     function showProgress(text) {
-      progressLabel.textContent = text;
-      progressEl.hidden = false;
-      const sc = document.getElementById('stage-chrome');
-      if (sc) sc.hidden = true;
+      chromeProgressLabel.textContent = text;
+      chromeProgressPct.textContent = '';
+      chromeProgressFill.classList.add('indeterminate');
+      chromeProgressFill.style.removeProperty('--progress');
+      chromeDefault.hidden = true;
+      chromeProgress.hidden = false;
+    }
+    function setProgress(pct) {
+      // pct: 0..1
+      chromeProgressFill.classList.remove('indeterminate');
+      chromeProgressFill.style.setProperty('--progress', `${Math.max(0, Math.min(1, pct)) * 100}%`);
+      chromeProgressPct.textContent = `${Math.round(pct * 100)}%`;
     }
     function hideProgress() {
-      progressEl.hidden = true;
-      const sc = document.getElementById('stage-chrome');
-      if (sc && state.source) sc.hidden = false;
+      chromeProgress.hidden = true;
+      chromeDefault.hidden = false;
     }
 
     let activeRecorder = null;
@@ -1182,6 +1169,14 @@
         console.error('Video play failed:', err);
         stopRecorder();
       }
+
+      // Progress feedback driven by v.currentTime / v.duration
+      const tick = () => {
+        if (stopped || cancelled) return;
+        if (v.duration > 0) setProgress(v.currentTime / v.duration);
+        requestAnimationFrame(tick);
+      };
+      requestAnimationFrame(tick);
     }
 
     let gifJsLoaded = null;
@@ -1200,7 +1195,8 @@
     async function exportGif() {
       await loadGifJs();
       const v = state.source.el;
-      showProgress('Encoding GIF… 0%');
+      showProgress('Capturing frames…');
+      setProgress(0);
 
       const useThreshold = state.dotTransparent || state.bgTransparent;
       const renderForGif = useThreshold
@@ -1236,8 +1232,11 @@
           if (cancelled) { resolve(); return; }
           renderForGif();
           gif.addFrame(canvas, { copy: true, delay: frameDelay });
+          // Capture phase — frames at 0..50% of bar
+          if (v.duration > 0) setProgress((v.currentTime / v.duration) * 0.5);
           if (v.currentTime + frameDelay / 1000 >= v.duration) {
-            gif.on('progress', p => showProgress(`Encoding GIF… ${Math.round(p * 100)}%`));
+            chromeProgressLabel.textContent = 'Encoding GIF…';
+            gif.on('progress', p => setProgress(0.5 + p * 0.5));
             gif.on('finished', blob => {
               hideProgress();
               if (!cancelled) downloadBlob(blob, 'dot-machine.gif');
@@ -1430,14 +1429,41 @@
 
     // Pan stored outside state — purely transient view, doesn't trigger renders
     const pan = { x: 0, y: 0 };
+
     function applyTransform() {
+      const wrapW = canvasWrap.clientWidth - 64; // minus 32px padding × 2
+      const wrapH = canvasWrap.clientHeight - 64;
+      const cw = canvas.width || 1;
+      const ch = canvas.height || 1;
+      if (wrapW < 1 || wrapH < 1 || !state.source) return;
+
+      // Fit the canvas inside the wrap at zoom = 1 ("contain"), then multiply by zoom.
+      // Beyond zoom = 1, the canvas extends into the wrap's 32px padding zone too.
+      const containScale = Math.min(wrapW / cw, wrapH / ch);
+      const scale = containScale * state.zoom;
+      const dispW = cw * scale;
+      const dispH = ch * scale;
+
+      canvas.style.width = `${dispW}px`;
+      canvas.style.height = `${dispH}px`;
       canvas.style.setProperty('--pan-x', `${pan.x}px`);
       canvas.style.setProperty('--pan-y', `${pan.y}px`);
-      canvas.style.setProperty('--zoom', state.zoom);
       canvas.classList.toggle('zoomed', state.zoom > 1.001);
       if (zoomValEl) zoomValEl.textContent = `${Math.round(state.zoom * 100)}%`;
     }
     function resetPan() { pan.x = 0; pan.y = 0; applyTransform(); }
+
+    // Match the canvas-wrap background to the canvas's drawn background,
+    // so any gap between the canvas's visible rect and the wrap edges blends
+    // seamlessly — no gray strips when zooming or when the image's aspect
+    // ratio doesn't match the stage.
+    function updateWrapBackground() {
+      canvasWrap.style.background = state.bgTransparent ? '' : state.bgColor;
+    }
+    onState(updateWrapBackground);
+
+    // Recompute layout when window resizes (wrap dimensions change)
+    window.addEventListener('resize', () => applyTransform());
 
     const ZOOM_STEPS = [0.5, 0.75, 1, 1.25, 1.5, 2, 3, 4];
     function clampZoom(z) { return Math.max(0.5, Math.min(4, z)); }
