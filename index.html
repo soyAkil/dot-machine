@@ -90,6 +90,30 @@
       <canvas id="canvas" hidden></canvas>
     </section>
   </main>
-  <script>/* sections 1-8 */</script>
+  <script>
+    // ============================================================
+    // SECTION 1: STATE — central reactive state object
+    // ============================================================
+    const state = {
+      source: null,        // { kind: 'image'|'video', el, width, height, durationOk }
+      cellSize: 12,
+      dotScale: 1.0,
+      brightness: 0.0,
+      contrast: 0.0,
+      dotOpacity: 1.0,
+      invert: false,
+      dotColor: '#1C0802',
+      bgColor: '#FFF7FA',
+      dotTransparent: false,
+      bgTransparent: false,
+    };
+
+    const listeners = new Set();
+    function setState(patch) {
+      Object.assign(state, patch);
+      listeners.forEach(fn => fn(state));
+    }
+    function onState(fn) { listeners.add(fn); fn(state); }
+  </script>
 </body>
 </html>
