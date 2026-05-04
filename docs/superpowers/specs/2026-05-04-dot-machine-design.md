@@ -160,7 +160,18 @@ DOT MACHINE/
 
 That's it. No package.json, no node_modules, no config.
 
-## 13. Acceptance Criteria
+## 13. Local Development
+
+The tool works by double-clicking `index.html` (`file://`). The only feature that fails on `file://` is **Copy to clipboard**, which requires a secure context. To get full functionality during local testing, serve the folder over `localhost`:
+
+```bash
+cd "DOT MACHINE" && python3 -m http.server 8080
+# then open http://localhost:8080
+```
+
+Once hosted on a real domain (HTTPS), no workaround is needed.
+
+## 14. Acceptance Criteria
 
 - Opening `index.html` in Safari and Chrome on macOS shows the empty state.
 - Dropping a JPG/PNG renders the halftone with default Canvas/Gaffer colors at interactive speed.
