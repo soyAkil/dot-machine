@@ -962,7 +962,9 @@ git commit -m "feat: reset button"
 **Files:**
 - Modify: `index.html`
 
-- [ ] **Step 1: Add action bar at bottom of rail**
+- [ ] **Step 1: Add action bar as the LAST child of `#rail`**
+
+This section must come after all control sections (geometry, tone, dots, dot color, background) so the `position: sticky; bottom: 0` rule pins it at the bottom of the scroll container.
 
 ```html
 <section class="section actions">
@@ -1020,10 +1022,11 @@ function buildDlMenu() {
   }
 }
 
-function addOption(label, fn, disabled = false) {
+function addOption(label, fn, disabled = false, tooltip = '') {
   const b = document.createElement('button');
   b.textContent = label;
   if (disabled) b.disabled = true;
+  if (tooltip) b.title = tooltip;
   b.addEventListener('click', () => { dlMenu.hidden = true; fn(); });
   dlMenu.appendChild(b);
 }
@@ -1055,10 +1058,15 @@ git commit -m "feat: action bar with download menu and disabled-state logic"
 - [ ] **Step 1: Implement bitmap export with full-res re-render**
 
 ```js
+const EXPORT_MAX = 4096; // hard cap per spec §6 — keeps memory predictable
+
 function renderToOffscreen() {
-  // Re-render to a fresh offscreen canvas at the source's native resolution.
+  // Re-render to a fresh offscreen canvas at the source's native resolution
+  // (capped at EXPORT_MAX on the longest side).
   const src = state.source;
-  const W = src.width, H = src.height;
+  const exportScale = Math.min(1, EXPORT_MAX / Math.max(src.width, src.height));
+  const W = Math.round(src.width * exportScale);
+  const H = Math.round(src.height * exportScale);
   const off = document.createElement('canvas');
   off.width = W; off.height = H;
   const octx = off.getContext('2d');
@@ -1141,7 +1149,9 @@ git commit -m "feat: PNG and JPEG export at native resolution"
 ```js
 function exportSvg() {
   const src = state.source;
-  const W = src.width, H = src.height;
+  const exportScale = Math.min(1, EXPORT_MAX / Math.max(src.width, src.height));
+  const W = Math.round(src.width * exportScale);
+  const H = Math.round(src.height * exportScale);
   const cs = state.cellSize;
   const cols = Math.max(1, Math.floor(W / cs));
   const rows = Math.max(1, Math.floor(H / cs));
@@ -1213,18 +1223,19 @@ copyBtn.addEventListener('click', async () => {
   if (!state.source) return;
   copyBtn.disabled = true;
   copyBtn.textContent = 'Copying…';
+  const off = renderToOffscreen();
+  const blob = await new Promise(r => off.toBlob(r, 'image/png'));
   try {
-    if (state.source.kind === 'image' || state.source.kind === 'video') {
-      const off = renderToOffscreen();
-      const blob = await new Promise(r => off.toBlob(r, 'image/png'));
-      await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
-      copyBtn.textContent = 'Copied ✓';
-    }
+    await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+    copyBtn.textContent = 'Copied ✓';
   } catch (e) {
-    console.error(e);
-    copyBtn.textContent = 'Clipboard unavailable';
+    // Per spec §9.1 / §10: fall back to download when clipboard write fails
+    // (file:// secure-context refusal, browser without ClipboardItem image support, etc.)
+    console.warn('Clipboard unavailable, falling back to download:', e);
+    downloadBlob(blob, 'dot-machine.png');
+    copyBtn.textContent = 'Downloaded (clipboard unavailable)';
   }
-  setTimeout(() => { copyBtn.disabled = false; copyBtn.textContent = 'Copy'; }, 1500);
+  setTimeout(() => { copyBtn.disabled = false; copyBtn.textContent = 'Copy'; }, 1800);
 });
 ```
 
@@ -1309,7 +1320,8 @@ Replace the `else` branch in `buildDlMenu`:
   VID_FORMATS.forEach(f => {
     const isBitmapVideo = f.label !== 'GIF';
     const disabled = (isBitmapVideo && transOn) || !canRecord;
-    addOption(f.label, () => exportVideo(f), disabled);
+    const tooltip = !canRecord ? "duration unknown — can't export" : '';
+    addOption(f.label, () => exportVideo(f), disabled, tooltip);
   });
 }
 ```
@@ -1332,8 +1344,11 @@ async function recordCanvasStream(format) {
 
   showProgress('Recording…');
   v.pause();
-  v.currentTime = 0;
-  await new Promise(r => v.addEventListener('seeked', r, { once: true }));
+  // Safari quirk: seeking to currentTime=0 when already at 0 may not fire 'seeked'.
+  if (v.currentTime !== 0) {
+    v.currentTime = 0;
+    await new Promise(r => v.addEventListener('seeked', r, { once: true }));
+  }
 
   const onEnded = () => {
     recorder.stop();
@@ -1467,23 +1482,31 @@ async function exportGif() {
   const fps = 15;
   const frameDelay = 1000 / fps;
   v.pause();
-  v.currentTime = 0;
-  await new Promise(r => v.addEventListener('seeked', r, { once: true }));
+  if (v.currentTime !== 0) {
+    v.currentTime = 0;
+    await new Promise(r => v.addEventListener('seeked', r, { once: true }));
+  }
 
-  // For binary alpha, threshold dot opacity at 0.5 by snapping it for the duration of the encode.
-  const restoreOpacity = state.dotOpacity;
+  // For binary alpha (GIF), threshold dot opacity at 0.5 for the encode.
+  // We don't mutate state — we override via a local renderer that swaps the
+  // global state.dotOpacity around each render call.
   const useThreshold = state.dotTransparent || state.bgTransparent;
-  if (useThreshold) state.dotOpacity = state.dotOpacity > 0.5 ? 1 : 0;
+  const renderForGif = useThreshold
+    ? () => {
+        const orig = state.dotOpacity;
+        state.dotOpacity = orig > 0.5 ? 1 : 0;
+        try { render(); } finally { state.dotOpacity = orig; }
+      }
+    : render;
 
   return new Promise(resolve => {
     const captureFrame = () => {
-      render();
+      renderForGif();
       gif.addFrame(canvas, { copy: true, delay: frameDelay });
       if (v.currentTime + frameDelay / 1000 >= v.duration) {
         gif.on('progress', p => showProgress(`Encoding GIF… ${Math.round(p * 100)}%`));
         gif.on('finished', blob => {
           hideProgress();
-          if (useThreshold) state.dotOpacity = restoreOpacity;
           downloadBlob(blob, 'dot-machine.gif');
           v.loop = true;
           v.play();
@@ -1522,30 +1545,35 @@ git commit -m "feat: animated GIF export via gif.js"
 **Files:**
 - Modify: `index.html`
 
-- [ ] **Step 1: Update `#export-info` from state**
+- [ ] **Step 1: Add `updateExportInfo` to Section 6 (EXPORT_IMG)**
+
+Place this function in Section 6, just below the `exportInfo` declaration from Task 5.1 (so `exportInfo` is in scope):
 
 ```js
 function updateExportInfo() {
   const src = state.source;
   if (!src) { exportInfo.textContent = ''; return; }
   if (src.kind === 'image') {
-    exportInfo.textContent = `${src.width} × ${src.height}`;
+    const exportScale = Math.min(1, EXPORT_MAX / Math.max(src.width, src.height));
+    const W = Math.round(src.width * exportScale);
+    const H = Math.round(src.height * exportScale);
+    exportInfo.textContent = `${W} × ${H}`;
   } else {
-    const previewW = canvas.width, previewH = canvas.height;
-    const tag = (previewW === src.width) ? '' : ' (preview)';
-    exportInfo.textContent = `${previewW} × ${previewH}${tag}`;
+    exportInfo.textContent = `${canvas.width} × ${canvas.height} (preview)`;
   }
 }
 onState(updateExportInfo);
 ```
 
-Add a hook in `render()` to call `updateExportInfo()` after sizing.
+- [ ] **Step 2: Hook into `render()`**
 
-- [ ] **Step 2: Verify**
+In Section 4's `render()` function (Task 3.3), add `updateExportInfo();` immediately after the `if (canvas.height !== H) canvas.height = H;` line — i.e. right after canvas dimensions are settled.
 
-Drop a 4K image → bottom of rail shows `3840 × 2160`. Drop a 4K video → shows `1280 × 720 (preview)`.
+- [ ] **Step 3: Verify**
 
-- [ ] **Step 3: Commit**
+Drop a 4K image → bottom of rail shows `3840 × 2160`. Drop a 6000px image → shows `4096 × N` (capped). Drop a 4K video → shows `1280 × 720 (preview)`.
+
+- [ ] **Step 4: Commit**
 
 ```bash
 git add index.html
