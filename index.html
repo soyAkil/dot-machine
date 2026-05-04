@@ -113,6 +113,10 @@
     .dl-menu button { display: block; width: 100%; padding: 8px 12px; border: 0; background: none; text-align: left; cursor: pointer; font-family: inherit; font-size: 12px; color: var(--fg); }
     .dl-menu button:hover:not(:disabled) { background: rgba(28, 8, 2, 0.06); }
     .dl-menu button:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    #progress { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; gap: 16px; background: rgba(255, 247, 250, 0.92); z-index: 5; }
+    #progress .progress-label { font-size: 12px; }
+    #progress .btn { width: auto; margin: 0; padding: 6px 14px; }
   </style>
 </head>
 <body>
@@ -158,6 +162,10 @@
       <div id="empty">drop an image or video here</div>
       <canvas id="canvas" hidden></canvas>
       <input id="file" type="file" accept="image/*,video/*" hidden />
+      <div id="progress" hidden>
+        <span class="mono progress-label">recording…</span>
+        <button id="cancel-rec" class="btn">cancel</button>
+      </div>
     </section>
   </main>
   <script>
@@ -546,9 +554,159 @@
       setTimeout(() => { copyBtn.disabled = false; copyBtn.textContent = 'Copy'; }, 1800);
     });
 
-    // VID_FORMATS / exportVideo defined in Section 7 (next chunk)
-    let VID_FORMATS = [];
-    function exportVideo() {}
+    // ============================================================
+    // SECTION 7: EXPORT_VID — MediaRecorder (WebM/MP4) + GIF
+    // ============================================================
+    const VID_FORMATS = (() => {
+      const out = [];
+      if (typeof MediaRecorder !== 'undefined') {
+        if (MediaRecorder.isTypeSupported('video/webm;codecs=vp9')) {
+          out.push({ label: 'WebM', mime: 'video/webm;codecs=vp9', ext: 'webm' });
+        } else if (MediaRecorder.isTypeSupported('video/webm')) {
+          out.push({ label: 'WebM', mime: 'video/webm', ext: 'webm' });
+        }
+        if (MediaRecorder.isTypeSupported('video/mp4;codecs=avc1')) {
+          out.push({ label: 'MP4', mime: 'video/mp4;codecs=avc1', ext: 'mp4' });
+        }
+      }
+      out.push({ label: 'GIF', mime: 'image/gif', ext: 'gif' });
+      return out;
+    })();
+
+    const progressEl = document.getElementById('progress');
+    const progressLabel = progressEl.querySelector('.progress-label');
+    const cancelBtn = document.getElementById('cancel-rec');
+
+    function showProgress(text) {
+      progressLabel.textContent = text;
+      progressEl.hidden = false;
+    }
+    function hideProgress() { progressEl.hidden = true; }
+
+    let activeRecorder = null;
+
+    async function exportVideo(format) {
+      if (format.label === 'GIF') return exportGif();
+      return recordCanvasStream(format);
+    }
+
+    async function recordCanvasStream(format) {
+      const v = state.source.el;
+      const fps = 30;
+      const stream = canvas.captureStream(fps);
+      const recorder = new MediaRecorder(stream, { mimeType: format.mime });
+      activeRecorder = recorder;
+      const chunks = [];
+      recorder.ondataavailable = e => { if (e.data.size) chunks.push(e.data); };
+
+      showProgress('Recording…');
+      v.pause();
+      // Safari quirk: seeking to currentTime=0 when already at 0 may not fire 'seeked'.
+      if (v.currentTime !== 0) {
+        v.currentTime = 0;
+        await new Promise(r => v.addEventListener('seeked', r, { once: true }));
+      }
+
+      const onEnded = () => {
+        if (recorder.state !== 'inactive') recorder.stop();
+        v.removeEventListener('ended', onEnded);
+      };
+      v.addEventListener('ended', onEnded);
+
+      recorder.onstop = () => {
+        hideProgress();
+        activeRecorder = null;
+        if (chunks.length) {
+          const blob = new Blob(chunks, { type: format.mime });
+          downloadBlob(blob, `dot-machine.${format.ext}`);
+        }
+        v.loop = true;
+        v.play().catch(() => {});
+      };
+
+      cancelBtn.onclick = () => {
+        if (activeRecorder && activeRecorder.state !== 'inactive') {
+          // Drop chunks so the onstop handler doesn't download anything.
+          chunks.length = 0;
+          activeRecorder.stop();
+        }
+      };
+
+      v.loop = false;
+      recorder.start();
+      v.play().catch(() => {});
+    }
+
+    let gifJsLoaded = null;
+    function loadGifJs() {
+      if (gifJsLoaded) return gifJsLoaded;
+      gifJsLoaded = new Promise((res, rej) => {
+        const s = document.createElement('script');
+        s.src = 'https://cdn.jsdelivr.net/npm/gif.js.optimized@1.0.1/dist/gif.js';
+        s.onload = res;
+        s.onerror = rej;
+        document.head.appendChild(s);
+      });
+      return gifJsLoaded;
+    }
+
+    async function exportGif() {
+      await loadGifJs();
+      const v = state.source.el;
+      showProgress('Encoding GIF… 0%');
+
+      const useThreshold = state.dotTransparent || state.bgTransparent;
+      const renderForGif = useThreshold
+        ? () => {
+            const orig = state.dotOpacity;
+            state.dotOpacity = orig > 0.5 ? 1 : 0;
+            try { render(); } finally { state.dotOpacity = orig; }
+          }
+        : render;
+
+      const gif = new GIF({
+        workers: 2,
+        quality: 10,
+        workerScript: 'https://cdn.jsdelivr.net/npm/gif.js.optimized@1.0.1/dist/gif.worker.js',
+        width: canvas.width,
+        height: canvas.height,
+        transparent: useThreshold ? 0x000000 : null,
+      });
+
+      const fps = 15;
+      const frameDelay = 1000 / fps;
+      v.pause();
+      if (v.currentTime !== 0) {
+        v.currentTime = 0;
+        await new Promise(r => v.addEventListener('seeked', r, { once: true }));
+      }
+
+      let cancelled = false;
+      cancelBtn.onclick = () => { cancelled = true; hideProgress(); v.loop = true; v.play().catch(() => {}); };
+
+      return new Promise(resolve => {
+        const captureFrame = () => {
+          if (cancelled) { resolve(); return; }
+          renderForGif();
+          gif.addFrame(canvas, { copy: true, delay: frameDelay });
+          if (v.currentTime + frameDelay / 1000 >= v.duration) {
+            gif.on('progress', p => showProgress(`Encoding GIF… ${Math.round(p * 100)}%`));
+            gif.on('finished', blob => {
+              hideProgress();
+              if (!cancelled) downloadBlob(blob, 'dot-machine.gif');
+              v.loop = true;
+              v.play().catch(() => {});
+              resolve();
+            });
+            gif.render();
+          } else {
+            v.currentTime = Math.min(v.duration, v.currentTime + frameDelay / 1000);
+            v.addEventListener('seeked', captureFrame, { once: true });
+          }
+        };
+        captureFrame();
+      });
+    }
 
     // ============================================================
     // SECTION 5: CONTROLS — bind UI to state
@@ -646,7 +804,9 @@
       console.assert(adjust(-2, 0, 0) === 0, 'clamp lower');
       console.assert(Math.abs(rgbaToLuma(255, 255, 255) - 1) < 1e-9, 'white luma');
       console.assert(rgbaToLuma(0, 0, 0) === 0, 'black luma');
+      console.assert(VID_FORMATS.some(f => f.label === 'GIF'), 'GIF always present');
       console.log('asserts: ok');
+      console.log('vid formats:', VID_FORMATS.map(f => f.label).join(', '));
     }
     if (location.search.includes('debug')) runDebugAsserts();
 
