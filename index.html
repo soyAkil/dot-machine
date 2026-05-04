@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>DOT MACHINE</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23FFFFFF'/%3E%3Ccircle cx='8' cy='8' r='2.4' fill='%231C0802'/%3E%3Ccircle cx='16' cy='8' r='3.2' fill='%231C0802'/%3E%3Ccircle cx='24' cy='8' r='2.4' fill='%231C0802'/%3E%3Ccircle cx='8' cy='16' r='3.2' fill='%231C0802'/%3E%3Ccircle cx='16' cy='16' r='4' fill='%231C0802'/%3E%3Ccircle cx='24' cy='16' r='3.2' fill='%231C0802'/%3E%3Ccircle cx='8' cy='24' r='2.4' fill='%231C0802'/%3E%3Ccircle cx='16' cy='24' r='3.2' fill='%231C0802'/%3E%3Ccircle cx='24' cy='24' r='2.4' fill='%231C0802'/%3E%3C/svg%3E" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet" />
@@ -16,7 +17,9 @@
       --canvas: #FFF7FA;
       --gaffer: #1C0802;
 
-      --bg: var(--canvas);
+      /* UI surfaces — pure white for the chrome, neutral gray for the empty stage */
+      --bg: #FFFFFF;
+      --stage-bg: #EBEBEB;
       --fg: var(--gaffer);
       --hairline: rgba(28, 8, 2, 0.08);
       --hairline-strong: rgba(28, 8, 2, 0.16);
@@ -79,17 +82,44 @@
       justify-content: center;
       padding: 32px;
       overflow: hidden;
+      background: var(--stage-bg);
       transition: background-color 200ms var(--ease);
     }
 
     #empty {
-      font-family: 'Geist Mono', ui-monospace, monospace;
-      color: var(--muted-soft);
-      pointer-events: none;
-      letter-spacing: 0.02em;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 14px;
       transition: opacity 240ms var(--ease), filter 240ms var(--ease);
     }
-    #stage.drop-active #empty { opacity: 0.85; filter: blur(0.4px); }
+    #stage.drop-active #empty { opacity: 0.7; filter: blur(0.4px); }
+
+    .empty-btn {
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--bg);
+      background: var(--gaffer);
+      border: 0;
+      border-radius: 999px;
+      padding: 12px 24px;
+      cursor: pointer;
+      letter-spacing: 0.01em;
+      box-shadow: 0 4px 14px -6px rgba(0, 0, 0, 0.25), 0 1px 2px rgba(0, 0, 0, 0.08);
+      transition: transform 120ms var(--ease), box-shadow 200ms var(--ease), background-color 160ms var(--ease);
+    }
+    .empty-btn:hover { transform: translateY(-1px); box-shadow: 0 8px 20px -6px rgba(0, 0, 0, 0.3), 0 2px 4px rgba(0, 0, 0, 0.1); background: #2A1108; }
+    .empty-btn:active { transform: scale(0.96); }
+    .empty-btn:focus-visible { outline: 2px solid var(--gaffer); outline-offset: 3px; }
+    .empty-hint {
+      font-family: 'Geist Mono', ui-monospace, monospace;
+      font-size: 11px;
+      color: var(--muted);
+      margin: 0;
+      letter-spacing: 0.02em;
+      pointer-events: none;
+    }
 
     #canvas {
       max-width: 100%;
@@ -112,7 +142,7 @@
       pointer-events: none;
       transition: border-color 200ms var(--ease);
     }
-    #stage.drop-active { background: rgba(173, 231, 255, 0.18); }
+    #stage.drop-active { background: #E0EEF5; }
     #stage.drop-active::after { border-color: rgba(28, 8, 2, 0.18); }
 
     .mono { font-family: 'Geist Mono', ui-monospace, monospace; }
@@ -267,7 +297,7 @@
       position: absolute;
       left: 0; right: 0; bottom: 100%;
       height: 24px;
-      background: linear-gradient(to top, var(--bg), rgba(255, 247, 250, 0));
+      background: linear-gradient(to top, var(--bg), rgba(255, 255, 255, 0));
       pointer-events: none;
     }
 
@@ -315,18 +345,38 @@
     .dl-menu button:hover:not(:disabled) { background: rgba(28, 8, 2, 0.06); }
     .dl-menu button:disabled { opacity: 0.4; cursor: not-allowed; }
 
+    /* Progress as a discreet toast at the bottom of the stage — never covers the canvas */
     #progress {
-      position: absolute; inset: 0;
-      display: flex; align-items: center; justify-content: center; gap: 16px;
-      background: rgba(255, 247, 250, 0.94);
-      backdrop-filter: blur(4px);
-      -webkit-backdrop-filter: blur(4px);
+      position: absolute;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 10px 14px 10px 18px;
+      background: var(--gaffer);
+      color: #fff;
+      border-radius: 999px;
+      box-shadow: 0 8px 28px -8px rgba(0, 0, 0, 0.35), 0 2px 6px rgba(0, 0, 0, 0.12);
       z-index: 5;
-      animation: fadeIn 200ms var(--ease);
+      animation: toastIn 220ms var(--ease);
     }
-    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-    #progress .progress-label { font-size: 12px; font-variant-numeric: tabular-nums; }
-    #progress .btn { width: auto; margin: 0; padding: 6px 14px; }
+    @keyframes toastIn {
+      from { opacity: 0; transform: translate(-50%, 8px); }
+      to   { opacity: 1; transform: translate(-50%, 0); }
+    }
+    #progress .progress-label { font-size: 12px; font-variant-numeric: tabular-nums; letter-spacing: 0.01em; }
+    #progress .btn {
+      width: auto; margin: 0;
+      padding: 4px 10px;
+      font-size: 11px;
+      background: rgba(255, 255, 255, 0.12);
+      color: #fff;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 999px;
+    }
+    #progress .btn:hover:not(:disabled) { background: rgba(255, 255, 255, 0.22); border-color: rgba(255, 255, 255, 0.35); }
 
     @media (prefers-reduced-motion: reduce) {
       *, *::before, *::after {
@@ -377,7 +427,10 @@
       </section>
     </aside>
     <section id="stage">
-      <div id="empty">drop an image or video here</div>
+      <div id="empty">
+        <button id="empty-btn" class="empty-btn" type="button">Add a file</button>
+        <p class="empty-hint mono">or drop one here</p>
+      </div>
       <canvas id="canvas" hidden></canvas>
       <input id="file" type="file" accept="image/*,video/*" hidden />
       <div id="progress" hidden>
@@ -420,7 +473,7 @@
     const canvas = document.getElementById('canvas');
     const ctx = canvas.getContext('2d');
 
-    stage.addEventListener('click', () => { if (!state.source) fileInput.click(); });
+    document.getElementById('empty-btn').addEventListener('click', () => fileInput.click());
     fileInput.addEventListener('change', e => {
       const f = e.target.files?.[0];
       if (f) loadFile(f);
@@ -1041,7 +1094,7 @@
     const fmtFloat = v => `${v >= 0 ? '+' : ''}${v.toFixed(2)}`;
     const fmtPct = v => `${Math.round(v * 100)}%`;
 
-    mountSlider({ container: document.getElementById('ctrl-geom'), key: 'cellSize', label: 'cell size', min: 4, max: 80, step: 1, format: fmtPx });
+    mountSlider({ container: document.getElementById('ctrl-geom'), key: 'cellSize', label: 'cell size', min: 4, max: 240, step: 1, format: fmtPx });
     mountSlider({ container: document.getElementById('ctrl-geom'), key: 'dotScale', label: 'dot scale', min: 0, max: 1.5, step: 0.01, format: v => v.toFixed(2) });
 
     mountSlider({ container: document.getElementById('ctrl-tone'), key: 'brightness', label: 'brightness', min: -1, max: 1, step: 0.01, format: fmtFloat });
