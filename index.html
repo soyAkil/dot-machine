@@ -211,15 +211,114 @@
       rafId = requestAnimationFrame(tick);
     }
 
+    // ============================================================
+    // SECTION 4: RENDER — halftone pipeline
+    // ============================================================
+
+    // Map [0,1] luminance through brightness (-1..1) and contrast (-1..1).
+    function adjust(L, b, c) {
+      L += b;
+      L = (L - 0.5) * (1 + c) + 0.5;
+      return Math.max(0, Math.min(1, L));
+    }
+
+    function rgbaToLuma(r, g, b) {
+      // Rec. 709
+      return (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
+    }
+
+    const bufCanvas = document.createElement('canvas');
+    const bufCtx = bufCanvas.getContext('2d', { willReadFrequently: true });
+
+    function buildLumaBuffer(source, cols, rows) {
+      bufCanvas.width = cols;
+      bufCanvas.height = rows;
+      bufCtx.clearRect(0, 0, cols, rows);
+      bufCtx.drawImage(source, 0, 0, cols, rows);
+      const { data } = bufCtx.getImageData(0, 0, cols, rows);
+      const out = new Float32Array(cols * rows);
+      for (let i = 0, j = 0; i < data.length; i += 4, j++) {
+        out[j] = rgbaToLuma(data[i], data[i + 1], data[i + 2]);
+      }
+      return out;
+    }
+
+    const PREVIEW_MAX = 1280;
+
     function render() {
-      // Stub; real implementation in Section 4.
       const src = state.source;
       if (!src) return;
-      canvas.width = src.width;
-      canvas.height = src.height;
-      ctx.fillStyle = state.bgColor;
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      const scale = Math.min(1, PREVIEW_MAX / Math.max(src.width, src.height));
+      const W = Math.round(src.width * scale);
+      const H = Math.round(src.height * scale);
+
+      if (canvas.width !== W) canvas.width = W;
+      if (canvas.height !== H) canvas.height = H;
+      updateExportInfo();
+
+      const cs = state.cellSize;
+      const cols = Math.max(1, Math.floor(W / cs));
+      const rows = Math.max(1, Math.floor(H / cs));
+
+      const luma = buildLumaBuffer(src.el, cols, rows);
+
+      if (state.bgTransparent) {
+        ctx.clearRect(0, 0, W, H);
+      } else {
+        ctx.fillStyle = state.bgColor;
+        ctx.fillRect(0, 0, W, H);
+      }
+
+      if (state.dotTransparent) {
+        ctx.globalCompositeOperation = 'destination-out';
+        ctx.fillStyle = '#000';
+        ctx.globalAlpha = 1;
+      } else {
+        ctx.globalCompositeOperation = 'source-over';
+        ctx.fillStyle = state.dotColor;
+        ctx.globalAlpha = state.dotOpacity;
+      }
+
+      const halfCell = cs / 2;
+      for (let j = 0; j < rows; j++) {
+        for (let i = 0; i < cols; i++) {
+          const L = adjust(luma[j * cols + i], state.brightness, state.contrast);
+          const darkness = state.invert ? L : 1 - L;
+          const r = darkness * halfCell * state.dotScale;
+          if (r < 0.4) continue;
+          ctx.beginPath();
+          ctx.arc(i * cs + halfCell, j * cs + halfCell, r, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.globalAlpha = 1;
     }
+
+    // Placeholder (Section 6 redefines)
+    function updateExportInfo() {}
+
+    onState(() => { if (state.source?.kind === 'image') render(); });
+
+    // ============================================================
+    // SECTION 8: BOOT — debug asserts
+    // ============================================================
+    function runDebugAsserts() {
+      console.assert(adjust(0.5, 0, 0) === 0.5, 'identity midpoint');
+      console.assert(adjust(0.5, 0.2, 0) > 0.5, 'brightness positive');
+      console.assert(adjust(0.5, -0.2, 0) < 0.5, 'brightness negative');
+      console.assert(adjust(0.0, 0, 1.0) === 0.0, 'contrast preserves 0');
+      console.assert(adjust(1.0, 0, 1.0) === 1.0, 'contrast preserves 1');
+      console.assert(adjust(0.5, 0, 1.0) === 0.5, 'contrast preserves midpoint');
+      console.assert(adjust(2, 0, 0) === 1, 'clamp upper');
+      console.assert(adjust(-2, 0, 0) === 0, 'clamp lower');
+      console.assert(Math.abs(rgbaToLuma(255, 255, 255) - 1) < 1e-9, 'white luma');
+      console.assert(rgbaToLuma(0, 0, 0) === 0, 'black luma');
+      console.log('asserts: ok');
+    }
+    if (location.search.includes('debug')) runDebugAsserts();
   </script>
 </body>
 </html>
